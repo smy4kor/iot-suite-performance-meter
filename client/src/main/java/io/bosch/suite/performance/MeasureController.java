@@ -15,9 +15,16 @@ public class MeasureController {
     @Autowired
     MeasureService service;
 
-    @RequestMapping(value = "/start/{count}", method = RequestMethod.GET)
+    @RequestMapping(value = "using-events/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.OK)
-    public String start(@PathVariable(name = "count", required = true) final Long count) {
-        return service.start(count);
+    public String measureUsingEvents(@PathVariable(name = "count", required = true) final Long count) {
+        return service.measureUsingEvents(count);
+    }
+
+    @RequestMapping(value = "using-feature/{featureId}/{count}", method = RequestMethod.GET)
+    @ResponseStatus(value = HttpStatus.OK)
+    public String measureUsingFeature(@PathVariable(name = "featureId", required = true) final String featureId,
+            @PathVariable(name = "count", required = true) final Long count) {
+        return service.measureUsingFeature(featureId, count);
     }
 }
