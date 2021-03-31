@@ -1,10 +1,11 @@
 import json
 import re
 
-class MeasurementRequest:
-    def __init__(self,id,serialNumber):
+class MeasurementData:
+    def __init__(self,id,serialNumber,sender):
         self.id = id
         self.serialNumber = serialNumber
+        self.sender = sender
     def toJson(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
@@ -54,11 +55,12 @@ class DittoCommand:
             print('Feature id: : ' + self.featureId)
         print("===")
         
-    def getMeasurementRequest(self):
+    def getMeasurementData(self):
         lst = []
         if 'value' not in self.payload.keys():
             return null
         id = self.payload['value']['id']
         serialNumber = self.payload['value']['serialNumber']
-        return MeasurementRequest(id,serialNumber)
+        sender = self.payload['value']['sender']
+        return MeasurementData(id,serialNumber,sender)
 

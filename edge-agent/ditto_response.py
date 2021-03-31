@@ -1,4 +1,5 @@
 import json
+from commands import MeasurementData
 
 class DittoResponse:
     """A utility class that is responsible for generating response messages according to the ditto protocol."""
@@ -17,18 +18,14 @@ class DittoResponse:
             "correlation-id": dittoCorrelationId,
             "content-type": "application/json"
         }
-    def preparePongResponse(self,measurement):
+
+    def prepareMeasurementResponse(self,req):
         self.headers = {
             "response-required": False,
             "content-type": "application/json"
         }
-        self.value = {
-            serialNumber: {}
-        }
-        self.value[measurement.id] = {
-                "response": "pong" + measurement.serialNumber
-        }
-            
+        self.value = MeasurementData(req.id,req.serialNumber,"device")
+
         
     def toJson(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
