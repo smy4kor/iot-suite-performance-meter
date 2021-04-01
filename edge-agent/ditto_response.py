@@ -24,7 +24,7 @@ class DittoResponse:
             "response-required": False,
             "content-type": "application/json"
         }
-        self.value = MeasurementData(req.id,req.serialNumber,"device")
+        self.value = MeasurementData(req.id,req.serialNumber)
 
         
     def toJson(self):

@@ -2,10 +2,9 @@ import json
 import re
 
 class MeasurementData:
-    def __init__(self,id,serialNumber,sender):
+    def __init__(self,id,serialNumber):
         self.id = id
         self.serialNumber = serialNumber
-        self.sender = sender
     def toJson(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
@@ -29,7 +28,7 @@ class DittoCommand:
             return None
 
     def getFeatureId(self):
-        pattern = "features/(.*)/inbox" ## /features/manually-created-lua-agent/inbox/messages/install
+        pattern = "features/(.*)/properties/" ## /features/measure-performance-feature/properties/status/request
         x = re.search(pattern, self.path)
         if x:
             return x.group(1)
@@ -61,6 +60,5 @@ class DittoCommand:
             return null
         id = self.payload['value']['id']
         serialNumber = self.payload['value']['serialNumber']
-        sender = self.payload['value']['sender']
-        return MeasurementData(id,serialNumber,sender)
+        return MeasurementData(id,serialNumber)
 

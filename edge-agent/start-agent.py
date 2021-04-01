@@ -51,11 +51,11 @@ def processEvent(msg):
     elif msg.topic == "command///req//modified":
         cmd = DittoCommand(payload, msg.topic)
         handleMeasurementRequest(cmd)
- 
+        cmd.printInfo()
 
 def handleMeasurementRequest(cmd):
     # todo: also check
-    if cmd.featureId == agent.featureId and cmd.getMeasurementData().sender == "client":
+    if cmd.featureId == agent.featureId and cmd.path.endswith('status/request'):
         print("processing request with ditto req id: " + str(cmd.getRequestId()))
         aknowledge(cmd)
         sendResponse(cmd)
@@ -72,6 +72,7 @@ def sendResponse(cmd):
     dittoRspTopic = "{}/{}/things/twin/commands/modify".format(deviceInfo.namespace, deviceInfo.deviceId)
     rsp = DittoResponse(dittoRspTopic, pth)
     rsp.prepareMeasurementResponse(mr)
+    print("publishing response: " + rsp.toJson())
     client.publish("e", rsp.toJson(), qos=1)
 
         
