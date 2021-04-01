@@ -1,56 +1,57 @@
 package io.bosch.measurement.performance;
 
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
+
+import javax.annotation.PostConstruct;
 
 import org.eclipse.ditto.client.DittoClient;
-import org.eclipse.ditto.client.twin.TwinFeatureHandle;
-import org.eclipse.ditto.model.things.ThingId;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
-import io.bosch.measurement.ditto.DittoClientWrapper;
-import io.bosch.measurement.ditto.SubscriptionInfo;
+import io.bosch.measurement.ditto.AuthenticationProperties;
+import io.bosch.measurement.ditto.DittoClientConfig;
+import io.bosch.measurement.ditto.DittoService;
 
 @Service
 public class MeasureService {
 
     @Autowired
-    DittoClientWrapper dittoClientWrapper;
+    @Qualifier(DittoClientConfig.LIVE_CLIENT)
+    DittoClient liveClient;
+
+    @Autowired
+    @Qualifier(DittoClientConfig.TWIN_CLIENT)
+    DittoClient twinClient;
+
+    @Autowired
+    AuthenticationProperties authenticationProperties;
 
     // agent will respond to featureUpdate on this id..
     private final String FEATURE_ID_FROM_AGENT = "measure-performance-feature";
-    private final String PROPERTY_PATH = String.format("/features/%s/properties/status/request",
+    private final String REQUEST_PROPERTY_PATH = String.format("/features/%s/properties/status/request",
+            FEATURE_ID_FROM_AGENT);
+    private final String RESPONSE_PROPERTY_PATH = String.format("/features/%s/properties/status/response",
             FEATURE_ID_FROM_AGENT);
 
-    public String measureUsingEvents(final SubscriptionInfo subscriptionInfo, final Long count) {
+    private DittoService dittoService;
+
+    @PostConstruct
+    public void onInit() {
+        dittoService = new DittoService(twinClient, authenticationProperties.getDeviceId());
+        dittoService.createFeatureIfNotPresent(FEATURE_ID_FROM_AGENT);
+    }
+
+    public String measureUsingEvents(final Long count) {
         return "not implemented yet";
     }
 
-    public String measureUsingFeature(final SubscriptionInfo subscriptionInfo, final Long count) {
+    public String measureUsingFeature(final Long count) {
         final String id = generateId();
-        final DittoClient client = dittoClientWrapper.getClient(subscriptionInfo);
         for (Long i = 0L; i < count; i++) {
-            updateFeature(subscriptionInfo, client, new MeasurementData(id, i));
+            dittoService.updateFeature(new MeasurementData(id, i), FEATURE_ID_FROM_AGENT, REQUEST_PROPERTY_PATH);
         }
         return id;
-    }
-
-    private void updateFeature(final SubscriptionInfo subscriptionInfo, final DittoClient client,
-            final MeasurementData measurementData) {
-        // for the feature id, call any operation. edge-agent does not care.
-        final ThingId thingId = ThingId.of(subscriptionInfo.getThingId());
-        final TwinFeatureHandle twinFeatureHandle = client.twin().forId(thingId).forFeature(FEATURE_ID_FROM_AGENT);
-        try {
-            twinFeatureHandle.putProperty(PROPERTY_PATH, "featureProperty").get();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-        } catch (final ExecutionException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-        }
     }
 
     private static String generateId() {

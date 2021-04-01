@@ -16,5 +16,17 @@ pip3 install --upgrade requests
 * Run `python3 edge-agent/start-agent.py`.
 
 ### Step 2: Run the client app
-* Run the client as spring boot application.
-* Use the end points to trigger performance measurement.
+* Client is a spring boot application.
+* To run, using following configurations. You can generate a clientId and secret from https://accounts.bosch-iot-suite.com/oauth2-clients/.
+
+```
+-Dauthentication.clientId=<generate-it-from-above-link>
+-Dauthentication.clientSecret=
+-Dauthentication.deviceId=<thing-id-including-namespace>
+-Dauthentication.serviceInstanceId=<your-service-instance-id>
+```
+### Step 3: Start a measurement
+Use the following end points to trigger performance measurement.
+* **Using 100 feature update:** http://localhost:8080/api/v1/measure/using-feature/100
+* **Using 100 event updates:** http://localhost:8080/api/v1/measure/using-events/100
+* **Check the status:** http://localhost:8080/api/v1/measure/status/<request-id>
