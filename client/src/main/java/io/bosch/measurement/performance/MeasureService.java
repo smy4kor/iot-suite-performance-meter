@@ -5,6 +5,7 @@ import java.util.UUID;
 import javax.annotation.PostConstruct;
 
 import org.eclipse.ditto.client.DittoClient;
+import org.eclipse.ditto.json.JsonPointer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -29,10 +30,9 @@ public class MeasureService {
 
     // agent will respond to featureUpdate on this id..
     private final String FEATURE_ID_FROM_AGENT = "measure-performance-feature";
-    private final String REQUEST_PROPERTY_PATH = String.format("/features/%s/properties/status/request",
-            FEATURE_ID_FROM_AGENT);
     private final String RESPONSE_PROPERTY_PATH = String.format("/features/%s/properties/status/response",
             FEATURE_ID_FROM_AGENT);
+    private static final JsonPointer REQUEST_PATH = JsonPointer.of("status/request");
 
     private DittoService dittoService;
 
@@ -43,13 +43,13 @@ public class MeasureService {
     }
 
     public String measureUsingEvents(final Long count) {
-        return "not implemented yet";
+        return "not implemented";
     }
 
     public String measureUsingFeature(final Long count) {
         final String id = generateId();
         for (Long i = 0L; i < count; i++) {
-            dittoService.updateFeature(new MeasurementData(id, i), FEATURE_ID_FROM_AGENT, REQUEST_PROPERTY_PATH);
+            dittoService.updateFeature(FEATURE_ID_FROM_AGENT, REQUEST_PATH, new MeasurementData(id, i));
         }
         return id;
     }

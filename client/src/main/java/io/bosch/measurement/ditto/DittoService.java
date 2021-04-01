@@ -9,6 +9,7 @@ import java.util.concurrent.TimeoutException;
 import org.eclipse.ditto.client.DittoClient;
 import org.eclipse.ditto.client.management.ThingHandle;
 import org.eclipse.ditto.client.twin.TwinFeatureHandle;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Feature;
@@ -21,7 +22,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import io.bosch.measurement.performance.MeasurementData;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DittoService {
     private static final Logger LOG = LoggerFactory.getLogger(DittoService.class.getName());
@@ -71,26 +73,12 @@ public class DittoService {
         }
     }
 
-    public void updateFeature(final MeasurementData measurementData, final String featureId,
-            final String propertyPath) {
+    public void updateFeature(final String featureId, final JsonPointer path, final Object value) {
         // for the feature id, call any operation. edge-agent does not care.
         final TwinFeatureHandle twinFeatureHandle = dittoClient.twin().forId(thingId).forFeature(featureId);
+        final JsonValue asJsonValue = getAsJsonValue(value);
         try {
-            twinFeatureHandle.putProperty(propertyPath, "featureProperty").get();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-        } catch (final ExecutionException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-        }
-    }
-
-    private void updateFeatureProperty(final String featureId, final JsonPointer propertyPath,
-            final JsonValue featureProperty) {
-        final TwinFeatureHandle twinFeatureHandle = dittoClient.twin().forId(thingId).forFeature(featureId);
-        LOG.debug("{}: Updating property [{}] of feature {}", thingId.getName(), propertyPath, featureId);
-        try {
-            twinFeatureHandle.putProperty(propertyPath, featureProperty).get();
+            twinFeatureHandle.putProperty(path, asJsonValue).get();
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             LOG.error("{}: Failed to update feature {}.", thingId.getName(), featureId, e);
@@ -110,6 +98,14 @@ public class DittoService {
                         LOG.error("{}: Create/Update thing Failed: {}", thingId.getName(), throwable.getMessage());
                     }
                 });
+    }
+
+    private static JsonValue getAsJsonValue(final Object value) {
+        try {
+            return JsonFactory.readFrom(new ObjectMapper().writeValueAsString(value));
+        } catch (final JsonProcessingException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot create measurement request property.");
+        }
     }
 
 }
