@@ -63,7 +63,7 @@ def handleMeasurementRequest(cmd):
         print("Ignoring the message received for feature: " + str(cmd.featureId))   
         # else, from cache file stored with cmd.featureId and execute the scripts stored there
 
-
+# see https://wiki.bosch-si.com/pages/viewpage.action?spaceKey=MBSIOTSDK&title=Things+Protocol+Patterns
 def sendResponse(cmd):
     mr = cmd.getMeasurementData()
     print("Responding to : {},{}".format(mr.id,mr.serialNumber))
