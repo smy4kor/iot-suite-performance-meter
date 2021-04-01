@@ -71,8 +71,9 @@ public class MeasurementStatus {
         return this.confirmedResponse == this.packetSent;
     }
 
-    public long elapsedTime() {
-        return ChronoUnit.SECONDS.between(startedAt, endAt);
+    public String getTimeTaken() {
+        final LocalDateTime end = endAt == null ? LocalDateTime.now() : endAt;
+        return Math.round(ChronoUnit.MILLIS.between(startedAt, end) / 1000.0) + "sec";
     }
 
 }
