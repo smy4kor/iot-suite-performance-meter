@@ -37,7 +37,8 @@ public class DittoService {
     public void registerForFeatureChange(final String featureId, final Consumer<Change> handler)
             throws InterruptedException, ExecutionException {
         dittoClient.twin().startConsumption().thenAccept(Void -> {
-            dittoClient.twin().registerForFeaturePropertyChanges("my-feature-changes", featureId, "status", handler);
+            dittoClient.twin().registerForFeaturePropertyChanges("my-feature-changes", featureId, "/", handler);
+            LOG.info("Registered for feature update events");
         });
     }
 
