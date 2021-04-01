@@ -1,12 +1,12 @@
 package io.bosch.measurement.ditto;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 import org.eclipse.ditto.client.DittoClient;
+import org.eclipse.ditto.client.changes.Change;
 import org.eclipse.ditto.client.management.ThingHandle;
 import org.eclipse.ditto.client.twin.TwinFeatureHandle;
 import org.eclipse.ditto.json.JsonFactory;
@@ -14,7 +14,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.slf4j.Logger;
@@ -35,23 +34,16 @@ public class DittoService {
         this.dittoClient = dittoClient;
     }
 
-    public Optional<Thing> getThing() {
-        Thing responseThing = null;
-        try {
-            responseThing = dittoClient.twin().forId(thingId).retrieve().get(3, TimeUnit.SECONDS);
-        } catch (ExecutionException | TimeoutException e) {
-            LOG.error("Cannot get thing with id={}", thingId);
-            LOG.error("Client-Error:", e);
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-        }
-        return Optional.ofNullable(responseThing);
+    public void registerForFeatureChange(final String featureId, final Consumer<Change> handler)
+            throws InterruptedException, ExecutionException {
+        dittoClient.twin().startConsumption().thenAccept(Void -> {
+            dittoClient.twin().registerForFeaturePropertyChanges("my-feature-changes", featureId, "status", handler);
+        });
     }
 
     public void createFeatureIfNotPresent(final String featureId) {
         try {
-            dittoClient.twin().forId(thingId).forFeature(featureId).retrieve().get();
+            dittoClient.twin().forId(thingId).forFeature(featureId).retrieve().get(10, TimeUnit.SECONDS);
         } catch (final Exception e) {
             final FeatureProperties featureProperties = FeatureProperties.newBuilder().build();
             final Feature feature = ThingsModelFactory.newFeatureBuilder().properties(featureProperties)

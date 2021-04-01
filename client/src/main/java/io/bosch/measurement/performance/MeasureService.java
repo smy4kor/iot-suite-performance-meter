@@ -1,11 +1,14 @@
 package io.bosch.measurement.performance;
 
-import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.PostConstruct;
 
 import org.eclipse.ditto.client.DittoClient;
+import org.eclipse.ditto.client.changes.Change;
 import org.eclipse.ditto.json.JsonPointer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -13,9 +16,16 @@ import org.springframework.stereotype.Service;
 import io.bosch.measurement.ditto.AuthenticationProperties;
 import io.bosch.measurement.ditto.DittoClientConfig;
 import io.bosch.measurement.ditto.DittoService;
+import io.bosch.measurement.status.MeasurementStatus;
+import io.bosch.measurement.status.StatusService;
 
 @Service
 public class MeasureService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MeasureService.class);
+
+    @Autowired
+    StatusService statusService;
 
     @Autowired
     @Qualifier(DittoClientConfig.LIVE_CLIENT)
@@ -29,38 +39,47 @@ public class MeasureService {
     AuthenticationProperties authenticationProperties;
 
     // agent will respond to featureUpdate on this id..
-    private final String FEATURE_ID_FROM_AGENT = "measure-performance-feature";
-    private final String RESPONSE_PROPERTY_PATH = String.format("/features/%s/properties/status/response",
-            FEATURE_ID_FROM_AGENT);
+    private static final String FEATURE_ID_FROM_AGENT = "measure-performance-feature";
     private static final JsonPointer REQUEST_PATH = JsonPointer.of("status/request");
+    private static final JsonPointer RESPONSE_PATH = JsonPointer.of("status/response");
 
     private DittoService dittoService;
 
     @PostConstruct
-    public void onInit() {
+    public void onInit() throws InterruptedException, ExecutionException {
         dittoService = new DittoService(twinClient, authenticationProperties.getDeviceId());
         dittoService.createFeatureIfNotPresent(FEATURE_ID_FROM_AGENT);
+        dittoService.registerForFeatureChange(FEATURE_ID_FROM_AGENT, this::onFeatureUpdate);
+    }
+
+    private void onFeatureUpdate(final Change change) {
+        final String path = change.getPath().toString();
+        change.getValue().ifPresent(value -> {
+            if (path.equals(REQUEST_PATH.toString())) {
+                LOG.info("Request has reached ditto: {}", value);
+                statusService.onDelivered(value);
+            } else if (path.equals(RESPONSE_PATH.toString())) {
+                LOG.info("Received a response from edge: {}", value);
+                statusService.onEdgeResponseReceived(value);
+            }
+        });
     }
 
     public String measureUsingEvents(final Long count) {
         return "not implemented";
     }
 
-    public String measureUsingFeature(final Long count) {
-        final String id = generateId();
+    public MeasurementStatus measureUsingFeature(final Long count) {
+        final MeasurementStatus m = statusService.start(count);
         for (Long i = 0L; i < count; i++) {
-            dittoService.updateFeature(FEATURE_ID_FROM_AGENT, REQUEST_PATH, new MeasurementData(id, i));
+            dittoService.updateFeature(FEATURE_ID_FROM_AGENT, REQUEST_PATH, new MeasurementData(m.getId(), i));
         }
-        return id;
+        return m;
     }
 
-    private static String generateId() {
-        return UUID.randomUUID().toString().replace("-", "");
-    }
-
-    public String getStatus(final String id) {
+    public MeasurementStatus getStatus(final String id) {
         // calculate the received events from the feature update.
-        return "not implemented";
+        return statusService.get(id);
     }
 
 }

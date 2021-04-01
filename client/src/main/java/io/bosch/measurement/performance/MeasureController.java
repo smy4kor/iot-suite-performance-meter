@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.bosch.measurement.status.MeasurementStatus;
+
 @RestController
 @RequestMapping("api/v1/measure")
 public class MeasureController {
@@ -23,13 +25,13 @@ public class MeasureController {
 
     @RequestMapping(value = "using-feature/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
-    public String measureUsingFeature(@PathVariable(name = "count", required = true) final Long count) {
+    public MeasurementStatus measureUsingFeature(@PathVariable(name = "count", required = true) final Long count) {
         return service.measureUsingFeature(count);
     }
 
     @RequestMapping(value = "status/{id}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.OK)
-    public String getStatus(@PathVariable(name = "id", required = true) final String id) {
+    public MeasurementStatus getStatus(@PathVariable(name = "id", required = true) final String id) {
         return service.getStatus(id);
     }
 }
