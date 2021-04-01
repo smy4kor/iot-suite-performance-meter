@@ -1,4 +1,4 @@
-package io.bosch.example.ditto;
+package io.bosch.measurement.ditto;
 
 public class SubscriptionInfo {
     private final String clientId;

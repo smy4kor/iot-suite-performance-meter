@@ -1,5 +1,6 @@
-package io.bosch.example.ditto;
+package io.bosch.measurement.ditto;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -52,10 +53,11 @@ public class DittoClientWrapper {
     }
 
     private static final List<String> getScopes(final String serviceInstanceId) {
-        final List<String> res = Arrays.asList("openid", "offline_access");
+        final List<String> res = new ArrayList<String>();
         for (final String name : Arrays.asList("iot-hub", "iot-things", "iot-manager", "iot-rollouts")) {
             res.add(String.format("service-instance.%s.%s", serviceInstanceId, name));
         }
+        res.addAll(Arrays.asList("openid", "offline_access"));
         return res;
     }
 

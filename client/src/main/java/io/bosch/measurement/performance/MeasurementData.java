@@ -1,4 +1,4 @@
-package io.bosch.suite.performance;
+package io.bosch.measurement.performance;
 
 public class MeasurementData {
     private String id;

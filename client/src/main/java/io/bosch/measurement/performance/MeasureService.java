@@ -1,4 +1,4 @@
-package io.bosch.suite.performance;
+package io.bosch.measurement.performance;
 
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -11,8 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import io.bosch.example.ditto.DittoClientWrapper;
-import io.bosch.example.ditto.SubscriptionInfo;
+import io.bosch.measurement.ditto.DittoClientWrapper;
+import io.bosch.measurement.ditto.SubscriptionInfo;
 
 @Service
 public class MeasureService {
@@ -22,7 +22,7 @@ public class MeasureService {
 
     // agent will respond to featureUpdate on this id..
     private final String FEATURE_ID_FROM_AGENT = "measure-performance-feature";
-    private final String PROPERTY_PATH = String.format("/features/%s/properties/status/response",
+    private final String PROPERTY_PATH = String.format("/features/%s/properties/status/request",
             FEATURE_ID_FROM_AGENT);
 
     public String measureUsingEvents(final SubscriptionInfo subscriptionInfo, final Long count) {

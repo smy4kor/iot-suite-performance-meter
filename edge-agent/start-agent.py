@@ -41,6 +41,7 @@ def on_message(client, userdata, msg):
 def processEvent(msg):
     '''Will process the mqtt message based on the use case. Usecase is determined by the message topic.'''
     payloadStr = str(msg.payload.decode("utf-8", "ignore"))
+    print(payloadStr)
     payload = json.loads(payloadStr)
 
     if msg.topic == DEVICE_INFO_TOPIC:
@@ -53,13 +54,13 @@ def processEvent(msg):
  
 
 def handleMeasurementRequest(cmd):
-    # cmd.printInfo()
+    # todo: also check
     if cmd.featureId == agent.featureId and cmd.getMeasurementData().sender == "client":
         print("processing request with ditto req id: " + str(cmd.getRequestId()))
         aknowledge(cmd)
         sendResponse(cmd)
     else:
-        print("command received on unknown feature: " + str(cmd.featureId))   
+        print("Ignoring the message received for feature: " + str(cmd.featureId))   
         # else, from cache file stored with cmd.featureId and execute the scripts stored there
 
 
