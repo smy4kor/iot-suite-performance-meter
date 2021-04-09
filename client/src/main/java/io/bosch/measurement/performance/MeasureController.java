@@ -1,7 +1,10 @@
 package io.bosch.measurement.performance;
 
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -12,20 +15,20 @@ import io.bosch.measurement.status.MeasurementStatus;
 
 @RestController
 @RequestMapping("api/v1/measure")
+@RequiredArgsConstructor
 public class MeasureController {
 
-    @Autowired
-    MeasureService service;
+    private final MeasureService service;
 
     @RequestMapping(value = "using-events/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
-    public String measureUsingEvents(@PathVariable(name = "count", required = true) final Long count) {
+    public String measureUsingEvents(@PathVariable(name = "count", required = true) final int count) {
         return service.measureUsingEvents(count);
     }
 
     @RequestMapping(value = "using-feature/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
-    public MeasurementStatus measureUsingFeature(@PathVariable(name = "count", required = true) final Long count) {
+    public MeasurementStatus measureUsingFeature(@PathVariable(name = "count", required = true) final int count) {
         return service.measureUsingFeature(count);
     }
 

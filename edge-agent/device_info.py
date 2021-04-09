@@ -8,6 +8,7 @@ class DeviceInfo:
 
     def __init__(self, payload):
         # See https://docs.bosch-iot-suite.com/edge/index.html#109655.htm
+        self.thingId = payload["deviceId"]
         arr = payload["deviceId"].split(":")
         self.namespace = arr[0]
         self.deviceId = arr[1]

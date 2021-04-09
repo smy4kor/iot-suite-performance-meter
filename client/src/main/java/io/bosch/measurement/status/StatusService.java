@@ -19,7 +19,7 @@ public class StatusService {
     private static final Logger LOG = LoggerFactory.getLogger(StatusService.class);
     private static final Map<String, MeasurementStatus> statusCache = new ConcurrentHashMap<>();
 
-    public static synchronized MeasurementStatus start(final Long packets) {
+    public static synchronized MeasurementStatus start(final int packets) {
         final MeasurementStatus m = new MeasurementStatus();
         m.setId(generateId());
         m.setStartedAt(LocalDateTime.now());

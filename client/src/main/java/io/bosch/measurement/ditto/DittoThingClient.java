@@ -7,8 +7,10 @@ import java.util.function.Consumer;
 
 import org.eclipse.ditto.client.DittoClient;
 import org.eclipse.ditto.client.changes.Change;
+import org.eclipse.ditto.client.live.messages.RepliableMessage;
 import org.eclipse.ditto.client.management.ThingHandle;
 import org.eclipse.ditto.client.twin.TwinFeatureHandle;
+import org.eclipse.ditto.client.twin.TwinThingHandle;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -24,14 +26,16 @@ import org.springframework.web.server.ResponseStatusException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class DittoService {
-    private static final Logger LOG = LoggerFactory.getLogger(DittoService.class.getName());
+public class DittoThingClient {
+    private static final Logger LOG = LoggerFactory.getLogger(DittoThingClient.class.getName());
     private final DittoClient dittoClient;
-    private final ThingId thingId;
+    private final String thingId;
+    private final TwinThingHandle thingTwin;
 
-    public DittoService(final DittoClient dittoClient, final String deviceId) {
-        thingId = ThingId.of(deviceId);
+    public DittoThingClient(final DittoClient dittoClient, final String deviceId) {
+        this.thingId = deviceId;
         this.dittoClient = dittoClient;
+        this.thingTwin = dittoClient.twin().forId(ThingId.of(deviceId));
     }
 
     public void registerForFeatureChange(final String featureId, final Consumer<Change> handler)
@@ -42,9 +46,18 @@ public class DittoService {
         });
     }
 
+    public void registerForMeterEvents(final Consumer<RepliableMessage<?, Object>> handler) {
+        dittoClient.live().forId(ThingId.of(thingId)).registerForMessage("performance-meter",
+                "meter-event", handler);
+    }
+
+    public void deregisterForMeterEvents() {
+        dittoClient.live().forId(ThingId.of(thingId)).deregister("performance-meter");
+    }
+
     public void createFeatureIfNotPresent(final String featureId) {
         try {
-            dittoClient.twin().forId(thingId).forFeature(featureId).retrieve().get(10, TimeUnit.SECONDS);
+            thingTwin.forFeature(featureId).retrieve().get(10, TimeUnit.SECONDS);
         } catch (final Exception e) {
             final FeatureProperties featureProperties = FeatureProperties.newBuilder().build();
             final Feature feature = ThingsModelFactory.newFeatureBuilder().properties(featureProperties)
@@ -58,37 +71,36 @@ public class DittoService {
             return createFeatureWithClient(feature).get();
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOG.error("{}: Failed to create feature.", thingId.getName(), e);
+            LOG.error("{}: Failed to create feature.", thingId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         } catch (final ExecutionException e) {
-            LOG.error("{}: Failed to create feature.", thingId.getName(), e);
+            LOG.error("{}: Failed to create feature.", thingId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
     public void updateFeature(final String featureId, final JsonPointer path, final Object value) {
         // for the feature id, call any operation. edge-agent does not care.
-        final TwinFeatureHandle twinFeatureHandle = dittoClient.twin().forId(thingId).forFeature(featureId);
+        final TwinFeatureHandle twinFeatureHandle = thingTwin.forFeature(featureId);
         final JsonValue asJsonValue = getAsJsonValue(value);
         try {
             twinFeatureHandle.putProperty(path, asJsonValue).get();
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOG.error("{}: Failed to update feature {}.", thingId.getName(), featureId, e);
+            LOG.error("{}: Failed to update feature {}.", thingId, featureId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         } catch (final ExecutionException e) {
-            LOG.error("{}: Failed to update feature {}.", thingId.getName(), featureId, e);
+            LOG.error("{}: Failed to update feature {}.", thingId, featureId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
     private CompletableFuture<Feature> createFeatureWithClient(final Feature feature) {
-        final ThingHandle<TwinFeatureHandle> thingHandle = dittoClient.twin().forId(thingId);
-        LOG.debug("{}: Create/Update feature: {}", thingId.getName(), feature.toJson());
-        return thingHandle.putFeature(feature).thenCompose(aVoid -> thingHandle.forFeature(feature.getId()).retrieve())
+        LOG.debug("{}: Create/Update feature: {}", thingId, feature.toJson());
+        return thingTwin.putFeature(feature).thenCompose(aVoid -> thingTwin.forFeature(feature.getId()).retrieve())
                 .whenComplete((responseThing, throwable) -> {
                     if (throwable != null) {
-                        LOG.error("{}: Create/Update thing Failed: {}", thingId.getName(), throwable.getMessage());
+                        LOG.error("{}: Create/Update thing Failed: {}", thingId, throwable.getMessage());
                     }
                 });
     }
@@ -101,4 +113,9 @@ public class DittoService {
         }
     }
 
+    public void sendStartMessage(String featureId, int messageCount) {
+        dittoClient.live().forId(ThingId.of(thingId)).forFeature(featureId).message().from().subject("start")
+                .payload("{ \"message_count\": " + messageCount + "}").send();
+        LOG.debug("Start message send to feature: {}", featureId);
+    }
 }

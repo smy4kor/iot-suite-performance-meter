@@ -10,10 +10,9 @@ from commands import DittoCommand, DittoResponse
 from device_info import DeviceInfo
 
 
-
 class Feature:
 
-    def __init__(self, name, version, feature_id, mqtt_client: paho.mqtt.client.Client, device_info:DeviceInfo):
+    def __init__(self, name, version, feature_id, mqtt_client: paho.mqtt.client.Client, device_info: DeviceInfo):
         """
         Create a new Feature for being present on the respective device thing.
 
@@ -45,7 +44,8 @@ class Feature:
             Information of this device in the context of its subscription.
         """
 
-        ditto_rsp_topic = "{}/{}/things/twin/commands/modify".format(self.__deviceInfo.namespace, self.__deviceInfo.deviceId)
+        ditto_rsp_topic = "{}/{}/things/twin/commands/modify".format(self.__deviceInfo.namespace,
+                                                                     self.__deviceInfo.deviceId)
         value = {
             "definition": ["org.example:PerformanceTest:2.0.0"],
             "properties": {
@@ -59,12 +59,12 @@ class Feature:
         rsp = DittoResponse(ditto_rsp_topic, path, None)
 
         rsp.value = value
-        self.__mqttClient.publish("e", rsp.toJson(), qos=1)
+        self.__mqttClient.publish("e", rsp.to_json(), qos=1)
 
     def acknowledge(self, command: DittoCommand):
         if command.response_required():
-            mosquitto_topic = "command///res/" + str(command.getRequestId()) + "/200"
-            self.__mqttClient.publish(mosquitto_topic, command.get_response().toJson())
+            mosquitto_topic = "command///res/" + str(command.get_request_id()) + "/200"
+            self.__mqttClient.publish(mosquitto_topic, command.get_response().to_json())
             print("======== Acknowledgement sent on topic " + mosquitto_topic + " =============")
 
     def handle(self, command: DittoCommand):
@@ -83,6 +83,8 @@ class Feature:
 
             for i in range(count):
                 event = {
+                    'topic': self.__deviceInfo.namespace + "/" + self.__deviceInfo.deviceId + "/things/live/messages/meter-event",
+                    'path': '/',                    'ditto-message-subject': 'meter-event',
                     'headers': {
                         "response-required": False,
                         "content-type": "application/json"
@@ -93,5 +95,5 @@ class Feature:
                     }
                 }
                 self.__mqttClient.publish(
-                    'telemetry/{}/{}'.format(self.__deviceInfo.hubTenantId, self.__deviceInfo.deviceId),
+                    'telemetry/{}/{}'.format(self.__deviceInfo.hubTenantId, self.__deviceInfo.thingId),
                     json.dumps(event))

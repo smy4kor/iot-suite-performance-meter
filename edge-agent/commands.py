@@ -3,9 +3,9 @@ import re
 
 
 class MeasurementData:
-    def __init__(self, id, serialNumber):
-        self.id = id
-        self.serialNumber = serialNumber
+    def __init__(self, message_id, serial_number):
+        self.id = message_id
+        self.serialNumber = serial_number
 
     def toJson(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -37,7 +37,7 @@ class DittoResponse:
         self.value = MeasurementData(req.id, req.serialNumber)
 
 
-    def toJson(self):
+    def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
@@ -50,10 +50,10 @@ class DittoCommand:
         self.dittoCorrelationId = payload['headers']["correlation-id"]
         self.dittoOriginator = payload['headers']["ditto-originator"]
         self.requestHeaders = payload['headers']
-        self.value = payload['value']
+        self.value = json.loads(payload['value'])
         self.featureId = payload['headers']['ditto-message-feature-id']
 
-    def getRequestId(self):
+    def get_request_id(self):
         # everything between req/ and /install is the request id.
         # Ex topic: command///req/01fp-pdid6m-12i8u431qmpi1b-1m2zqv2replies/install
         pattern = "req/(.*)/"
@@ -63,7 +63,7 @@ class DittoCommand:
         else:
             return None
 
-    def getFeatureId(self):
+    def get_feature_id(self):
         pattern = "features/(.*)/properties/"  ## /features/measure-performance-feature/properties/status/request
         x = re.search(pattern, self.path)
         if x:
@@ -71,7 +71,7 @@ class DittoCommand:
         else:
             return None
 
-    def getServiceInstanceId(self):
+    def get_service_instance_id(self):
         pattern = "service-instance.(.*).iot-"
         ## everything between 'service-instance.' and '.iot-'. 
         # Ex topic: iot-suite:useridhere/service-instance.abcde.iot-things@device-management
@@ -85,7 +85,7 @@ class DittoCommand:
         print("MQTT topic: " + self.mqttTopic)
         print('Ditto topic: ' + self.dittoTopic)
         print('Ditto originator: ' + self.dittoOriginator)
-        print('Service instance id: ' + self.getServiceInstanceId())
+        print('Service instance id: ' + self.get_service_instance_id())
         print('Path: ' + self.path)
         if self.featureId:
             print('Feature id: : ' + self.featureId)
@@ -94,10 +94,10 @@ class DittoCommand:
     def get_measurement_data(self) -> MeasurementData:
         lst = []
         if 'value' not in self.payload.keys():
-            return null
-        id = self.payload['value']['id']
-        serialNumber = self.payload['value']['serialNumber']
-        return MeasurementData(id, serialNumber)
+            return None
+        value_id = self.payload['value']['id']
+        serial_number = self.payload['value']['serialNumber']
+        return MeasurementData(value_id, serial_number)
 
     def get_response(self) -> DittoResponse:
         """Get an acknowledge response for this command."""
