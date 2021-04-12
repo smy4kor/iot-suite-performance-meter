@@ -5,10 +5,12 @@
 package io.bosch.measurement.ditto;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * Things client specific configuration properties
  */
+@Configuration
 @ConfigurationProperties(prefix = "authentication")
 public class AuthenticationProperties {
 
