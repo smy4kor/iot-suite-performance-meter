@@ -79,21 +79,25 @@ class Feature:
             print("Start sending messages...")
             count = command.value.get('message_count', 100)
             method = command.value.get('method', 'SUITE')
-            print("Message count = {} method = {}".format(count, method))
+            respSubject = 'meter.event.response';
+            respPath = "/features/{}/outbox/messages/{}".format(command.featureId, respSubject)
+            print("Expected response message count = {} method = {}".format(count, method))
 
             for i in range(count):
                 event = {
-                    'topic': self.__deviceInfo.namespace + "/" + self.__deviceInfo.deviceId + "/things/live/messages/meter-event",
-                    'path': '/',                    'ditto-message-subject': 'meter-event',
+                    # 'topic': command.dittoTopic,
+                    'topic': self.__deviceInfo.namespace + "/" + self.__deviceInfo.deviceId + "/things/live/messages/" + respSubject, 
+                    'path': respPath,
                     'headers': {
                         "response-required": False,
-                        "content-type": "application/json"
+                        "content-type": "application/json",
+                        "correlation-id": "dont-care",
                     },
                     'value': {
-                        "count": count,
-                        "number": i
+                        "expected": count,
+                        "current": i
                     }
                 }
-                self.__mqttClient.publish(
-                    'telemetry/{}/{}'.format(self.__deviceInfo.hubTenantId, self.__deviceInfo.thingId),
-                    json.dumps(event))
+                if i == count-1:
+                    print("Sending {}".format(json.dumps(event)))
+                self.__mqttClient.publish('t',json.dumps(event),qos=0)
