@@ -38,10 +38,10 @@ public class DittoClientConfig {
         this.authenticationProperties = authenticationProperties;
     }
 
-//    @Bean(LIVE_CLIENT)
-//    DittoClient createLiveThingsClient() {
-//        return DittoClients.newInstance(createDittoConfiguration());
-//    }
+    @Bean(LIVE_CLIENT)
+    DittoClient createLiveThingsClient() {
+        return DittoClients.newInstance(createDittoConfiguration());
+    }
 
     @Bean(TWIN_CLIENT)
     DittoClient createTwinThingsClient() {

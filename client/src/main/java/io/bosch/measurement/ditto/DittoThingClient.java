@@ -1,5 +1,6 @@
 package io.bosch.measurement.ditto;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -8,7 +9,6 @@ import java.util.function.Consumer;
 import org.eclipse.ditto.client.DittoClient;
 import org.eclipse.ditto.client.changes.Change;
 import org.eclipse.ditto.client.live.messages.RepliableMessage;
-import org.eclipse.ditto.client.management.ThingHandle;
 import org.eclipse.ditto.client.twin.TwinFeatureHandle;
 import org.eclipse.ditto.client.twin.TwinThingHandle;
 import org.eclipse.ditto.json.JsonFactory;
@@ -28,31 +28,47 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DittoThingClient {
     private static final Logger LOG = LoggerFactory.getLogger(DittoThingClient.class.getName());
-    private final DittoClient dittoClient;
+    private final DittoClient twinClient;
+    private final DittoClient liveClient;
     private final String thingId;
     private final TwinThingHandle thingTwin;
+    private static final String ALL_THINGS_STRING_MESSAGE = "allThings_stringMessage";
 
-    public DittoThingClient(final DittoClient dittoClient, final String deviceId) {
+    public DittoThingClient(final DittoClient twinClient, final DittoClient liveClient, final String deviceId) {
         this.thingId = deviceId;
-        this.dittoClient = dittoClient;
-        this.thingTwin = dittoClient.twin().forId(ThingId.of(deviceId));
+        this.twinClient = twinClient;
+        this.liveClient = liveClient;
+        this.thingTwin = twinClient.twin().forId(ThingId.of(deviceId));
+        this.liveClient.live().startConsumption().thenAccept(Void -> {
+            LOG.info("Registered for live events");
+        });
     }
 
     public void registerForFeatureChange(final String featureId, final Consumer<Change> handler)
             throws InterruptedException, ExecutionException {
-        dittoClient.twin().startConsumption().thenAccept(Void -> {
-            dittoClient.twin().registerForFeaturePropertyChanges("my-feature-changes", featureId, "/", handler);
+        twinClient.twin().startConsumption().thenAccept(Void -> {
+            twinClient.twin().registerForFeaturePropertyChanges("my-feature-changes", featureId, "/", handler);
             LOG.info("Registered for feature update events");
         });
     }
 
     public void registerForMeterEvents(final Consumer<RepliableMessage<?, Object>> handler) {
-        dittoClient.live().forId(ThingId.of(thingId)).registerForMessage("performance-meter",
-                "meter-event", handler);
+        liveClient.live().forId(ThingId.of(thingId)).registerForMessage("performance-meter", "meter.event.response",
+                handler);
+
+        // for the sake of logging
+        liveClient.live().forId(ThingId.of(thingId))
+                .registerForMessage("log-handler", "meter.event.response",
+                m -> {
+            final String subject = m.getSubject();
+            final Optional<?> payload = m.getPayload();
+                            LOG.info("Receiver: message for subject {} and payload {}", subject, payload);
+        });
     }
 
     public void deregisterForMeterEvents() {
-        dittoClient.live().forId(ThingId.of(thingId)).deregister("performance-meter");
+        liveClient.live().forId(ThingId.of(thingId)).deregister("performance-meter");
+        liveClient.live().forId(ThingId.of(thingId)).deregister("log-handler");
     }
 
     public void createFeatureIfNotPresent(final String featureId) {
@@ -113,8 +129,8 @@ public class DittoThingClient {
         }
     }
 
-    public void sendStartMessage(String featureId, int messageCount) {
-        dittoClient.live().forId(ThingId.of(thingId)).forFeature(featureId).message().from().subject("start")
+    public void sendStartMessage(final String featureId, final int messageCount) {
+        twinClient.live().forId(ThingId.of(thingId)).forFeature(featureId).message().from().subject("start")
                 .payload("{ \"message_count\": " + messageCount + "}").send();
         LOG.debug("Start message send to feature: {}", featureId);
     }

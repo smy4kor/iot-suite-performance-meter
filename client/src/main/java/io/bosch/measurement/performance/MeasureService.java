@@ -1,32 +1,43 @@
 package io.bosch.measurement.performance;
 
-import io.bosch.measurement.ditto.AuthenticationProperties;
-import io.bosch.measurement.ditto.DittoThingClient;
-import io.bosch.measurement.status.MeasurementStatus;
-import io.bosch.measurement.status.StatusService;
-import lombok.RequiredArgsConstructor;
+import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+
 import org.eclipse.ditto.client.DittoClient;
 import org.eclipse.ditto.client.changes.Change;
 import org.eclipse.ditto.client.live.messages.RepliableMessage;
 import org.eclipse.ditto.json.JsonPointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
+import io.bosch.measurement.ditto.AuthenticationProperties;
+import io.bosch.measurement.ditto.DittoClientConfig;
+import io.bosch.measurement.ditto.DittoThingClient;
+import io.bosch.measurement.status.MeasurementStatus;
+import io.bosch.measurement.status.StatusService;
+import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class MeasureService {
 
     private static final Logger LOG = LoggerFactory.getLogger(MeasureService.class);
 
-    private final DittoClient dittoClient;
-    private final AuthenticationProperties authenticationProperties;
+    @Autowired
+    @Qualifier(DittoClientConfig.TWIN_CLIENT)
+    private DittoClient twinClient;
+
+    @Autowired
+    @Qualifier(DittoClientConfig.LIVE_CLIENT)
+    private DittoClient liveClient;
+
+    @Autowired
+    private AuthenticationProperties authenticationProperties;
 
     // agent will respond to featureUpdate on this id..
     private static final String FEATURE_ID = "measure-performance-feature";
@@ -44,15 +55,16 @@ public class MeasureService {
         private long lastReceivedTime;
         private long startTime;
 
+
         @Override
-        public void accept(RepliableMessage<?, Object> message) {
+        public void accept(final RepliableMessage<?, Object> message) {
             receivedCount++;
             if (LOG.isDebugEnabled() && receivedCount%10 == 0) {
                 LOG.debug("Events received: {}", receivedCount);
             }
             if ( receivedCount >= targetCount && targetConsumer != null) {
                 lastReceivedTime = System.currentTimeMillis();
-                Duration d = Duration.ofMillis(lastReceivedTime - startTime);
+                final Duration d = Duration.ofMillis(lastReceivedTime - startTime);
                 targetConsumer.accept(d);
             }
         }
@@ -64,7 +76,7 @@ public class MeasureService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void onInit() throws InterruptedException, ExecutionException {
-        thingClient = new DittoThingClient(dittoClient, authenticationProperties.getDeviceId());
+        thingClient = new DittoThingClient(twinClient, liveClient, authenticationProperties.getDeviceId());
         thingClient.createFeatureIfNotPresent(FEATURE_ID);
         thingClient.registerForFeatureChange(FEATURE_ID, this::onFeatureUpdate);
     }
@@ -84,10 +96,10 @@ public class MeasureService {
 
     public String measureUsingEvents(final int count) {
         thingClient.deregisterForMeterEvents();
-        CountingConsumer handler = new CountingConsumer(count, duration -> {
+        final CountingConsumer handler = new CountingConsumer(count, duration -> {
             thingClient.deregisterForMeterEvents();
             LOG.info("Time elapsed for {} event is {}s ({}ms/event)",
-                    count, duration.toSeconds(), duration.toMillis()/count);
+                    count, duration.getSeconds(), duration.toMillis() / count);
         });
         thingClient.registerForMeterEvents(handler);
         handler.start();
