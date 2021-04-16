@@ -25,13 +25,14 @@ import org.springframework.web.server.ResponseStatusException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.bosch.measurement.performance.Request;
+
 public class DittoThingClient {
     private static final Logger LOG = LoggerFactory.getLogger(DittoThingClient.class.getName());
     private final DittoClient twinClient;
     private final DittoClient liveClient;
     private final String thingId;
     private final TwinThingHandle thingTwin;
-    private static final String ALL_THINGS_STRING_MESSAGE = "allThings_stringMessage";
 
     public DittoThingClient(final DittoClient twinClient, final DittoClient liveClient, final String deviceId) {
         this.thingId = deviceId;
@@ -119,9 +120,15 @@ public class DittoThingClient {
         }
     }
 
-    public void sendStartMessage(final String featureId, final int messageCount) {
-        twinClient.live().forId(ThingId.of(thingId)).forFeature(featureId).message().from().subject("start")
-                .payload("{ \"message_count\": " + messageCount + "}").send();
-        LOG.debug("Start message send to feature: {}", featureId);
+    public void sendStartMessage(final String featureId, final Request request) {
+        try {
+            final String payload = new ObjectMapper().writeValueAsString(request);
+            twinClient.live().forId(ThingId.of(thingId)).forFeature(featureId).message().from().subject("start")
+                    .payload(payload).send();
+            LOG.debug("Start message send to feature: {}", featureId);
+        } catch (final JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }

@@ -24,8 +24,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.bosch.measurement.ditto.AuthenticationProperties;
 import io.bosch.measurement.ditto.DittoClientConfig;
 import io.bosch.measurement.ditto.DittoThingClient;
-import io.bosch.measurement.status.MeasurementStatus;
-import io.bosch.measurement.status.StatusService;
 
 @Service
 public class MeasureService {
@@ -54,7 +52,7 @@ public class MeasureService {
         private final int expectedCount;
         private final Consumer<Duration> targetConsumer;
         private long startTime;
-        private final List<MeasurementData> received;
+        private final List<Response> received;
 
         public CountingConsumer(final int expectedCount, final Consumer<Duration> targetConsumer) {
             this.expectedCount = expectedCount;
@@ -64,15 +62,15 @@ public class MeasureService {
 
         @Override
         public void accept(final RepliableMessage<?, Object> message) {
+            final String msg = message.getPayload().get().toString();
             try {
-                final MeasurementData data = new ObjectMapper().readValue(message.getPayload().get().toString(),
-                        MeasurementData.class);
+                final Response data = new ObjectMapper().readValue(msg, Response.class);
                 received.add(data);
                 final int receivedCount = received.size();
                 final long lastReceivedTime = System.currentTimeMillis();
                 final Duration elapsedDuration = Duration.ofMillis(lastReceivedTime - startTime);
 
-                LOG.info("MessageId={} received. {} out of {} completed in {}ms", data.getCurrent(), receivedCount,
+                LOG.info("MessageId={} received. {} out of {} completed after {}ms", data.getCurrent(), receivedCount,
                         data.getExpected(), elapsedDuration.toMillis());
                 if (LOG.isDebugEnabled() && receivedCount % 10 == 0) {
                     LOG.debug("Events received: {}", receivedCount);
@@ -82,7 +80,7 @@ public class MeasureService {
                     targetConsumer.accept(elapsedDuration);
                 }
             } catch (final IOException e) {
-                e.printStackTrace();
+                LOG.error("Exception while parsing {}, {}", msg, e);
             }
         }
 
@@ -103,36 +101,29 @@ public class MeasureService {
         change.getValue().ifPresent(value -> {
             if (path.equals(REQUEST_PATH.toString())) {
                 LOG.info("Request has reached ditto: {}", value);
-                StatusService.onDelivered(value);
+                // StatusService.onDelivered(value);
             } else if (path.equals(RESPONSE_PATH.toString())) {
                 LOG.info("Received a response from edge: {}", value);
-                StatusService.onEdgeResponseReceived(value);
+                // StatusService.onEdgeResponseReceived(value);
             }
         });
     }
 
-    public String measureUsingEvents(final int count) {
+    public String measureUsingEvents(final Request request) {
         thingClient.deregisterForMeterEvents();
-        final CountingConsumer handler = new CountingConsumer(count, duration -> {
+        final CountingConsumer handler = new CountingConsumer(request.getCount(), duration -> {
             thingClient.deregisterForMeterEvents();
-            LOG.info("Time elapsed for {} event is {}s ({}ms/event)", count, duration.getSeconds(),
-                    duration.toMillis() / count);
+            LOG.info("Time elapsed for {} event is {}s ({}ms). Average of {}ms per event", request.getCount(),
+                    duration.getSeconds(), duration.toMillis(), duration.toMillis() / request.getCount());
         });
         thingClient.registerForMeterEvents(handler);
         handler.start();
-        thingClient.sendStartMessage(FEATURE_ID, count);
+        thingClient.sendStartMessage(FEATURE_ID, request);
         return "Meter started";
     }
 
-    public MeasurementStatus measureUsingFeature(final int count) {
-        final MeasurementStatus m = StatusService.start(count);
-        thingClient.updateFeature(FEATURE_ID, REQUEST_PATH, new MeasurementData(m.getId(), count, 0));
-        return m;
-    }
-
-    public MeasurementStatus getStatus(final String id) {
-        // calculate the received events from the feature update.
-        return StatusService.get(id);
+    public void measureUsingFeature(final Request request) {
+        thingClient.updateFeature(FEATURE_ID, REQUEST_PATH, request);
     }
 
 }
