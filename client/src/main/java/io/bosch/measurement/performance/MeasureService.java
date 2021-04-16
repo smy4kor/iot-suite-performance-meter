@@ -1,6 +1,9 @@
 package io.bosch.measurement.performance;
 
+import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
@@ -16,12 +19,13 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.bosch.measurement.ditto.AuthenticationProperties;
 import io.bosch.measurement.ditto.DittoClientConfig;
 import io.bosch.measurement.ditto.DittoThingClient;
 import io.bosch.measurement.status.MeasurementStatus;
 import io.bosch.measurement.status.StatusService;
-import lombok.RequiredArgsConstructor;
 
 @Service
 public class MeasureService {
@@ -46,26 +50,39 @@ public class MeasureService {
 
     private DittoThingClient thingClient;
 
-    @RequiredArgsConstructor
     private static class CountingConsumer implements Consumer<RepliableMessage<?, Object>> {
-        private final int targetCount;
+        private final int expectedCount;
         private final Consumer<Duration> targetConsumer;
-
-        private int receivedCount = 0;
-        private long lastReceivedTime;
         private long startTime;
+        private final List<MeasurementData> received;
 
+        public CountingConsumer(final int expectedCount, final Consumer<Duration> targetConsumer) {
+            this.expectedCount = expectedCount;
+            this.targetConsumer = targetConsumer;
+            this.received = new ArrayList<>();
+        }
 
         @Override
         public void accept(final RepliableMessage<?, Object> message) {
-            receivedCount++;
-            if (LOG.isDebugEnabled() && receivedCount%10 == 0) {
-                LOG.debug("Events received: {}", receivedCount);
-            }
-            if ( receivedCount >= targetCount && targetConsumer != null) {
-                lastReceivedTime = System.currentTimeMillis();
-                final Duration d = Duration.ofMillis(lastReceivedTime - startTime);
-                targetConsumer.accept(d);
+            try {
+                final MeasurementData data = new ObjectMapper().readValue(message.getPayload().get().toString(),
+                        MeasurementData.class);
+                received.add(data);
+                final int receivedCount = received.size();
+                final long lastReceivedTime = System.currentTimeMillis();
+                final Duration elapsedDuration = Duration.ofMillis(lastReceivedTime - startTime);
+
+                LOG.info("MessageId={} received. {} out of {} completed in {}ms", data.getCurrent(), receivedCount,
+                        data.getExpected(), elapsedDuration.toMillis());
+                if (LOG.isDebugEnabled() && receivedCount % 10 == 0) {
+                    LOG.debug("Events received: {}", receivedCount);
+                }
+                if (receivedCount >= expectedCount) {
+
+                    targetConsumer.accept(elapsedDuration);
+                }
+            } catch (final IOException e) {
+                e.printStackTrace();
             }
         }
 
@@ -98,8 +115,8 @@ public class MeasureService {
         thingClient.deregisterForMeterEvents();
         final CountingConsumer handler = new CountingConsumer(count, duration -> {
             thingClient.deregisterForMeterEvents();
-            LOG.info("Time elapsed for {} event is {}s ({}ms/event)",
-                    count, duration.getSeconds(), duration.toMillis() / count);
+            LOG.info("Time elapsed for {} event is {}s ({}ms/event)", count, duration.getSeconds(),
+                    duration.toMillis() / count);
         });
         thingClient.registerForMeterEvents(handler);
         handler.start();
@@ -109,12 +126,9 @@ public class MeasureService {
 
     public MeasurementStatus measureUsingFeature(final int count) {
         final MeasurementStatus m = StatusService.start(count);
-        for (int i = 0; i < count; i++) {
-            thingClient.updateFeature(FEATURE_ID, REQUEST_PATH, new MeasurementData(m.getId(), i));
-        }
+        thingClient.updateFeature(FEATURE_ID, REQUEST_PATH, new MeasurementData(m.getId(), count, 0));
         return m;
     }
-
 
     public MeasurementStatus getStatus(final String id) {
         // calculate the received events from the feature update.

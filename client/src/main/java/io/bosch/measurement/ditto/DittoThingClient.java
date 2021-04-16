@@ -1,6 +1,5 @@
 package io.bosch.measurement.ditto;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -55,15 +54,6 @@ public class DittoThingClient {
     public void registerForMeterEvents(final Consumer<RepliableMessage<?, Object>> handler) {
         liveClient.live().forId(ThingId.of(thingId)).registerForMessage("performance-meter", "meter.event.response",
                 handler);
-
-        // for the sake of logging
-        liveClient.live().forId(ThingId.of(thingId))
-                .registerForMessage("log-handler", "meter.event.response",
-                m -> {
-            final String subject = m.getSubject();
-            final Optional<?> payload = m.getPayload();
-                            LOG.info("Receiver: message for subject {} and payload {}", subject, payload);
-        });
     }
 
     public void deregisterForMeterEvents() {
