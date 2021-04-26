@@ -1,4 +1,5 @@
 import json
+import time
 
 import paho
 
@@ -100,4 +101,5 @@ class Feature:
                 }
                 if i == count - 1:
                     print("Sending {}".format(json.dumps(event)))
+                time.sleep(0.05)  # adding 50ms (=0.05s) for not overloading messaging and simulate some work
                 self.__mqttClient.publish('t', json.dumps(event), qos=1)

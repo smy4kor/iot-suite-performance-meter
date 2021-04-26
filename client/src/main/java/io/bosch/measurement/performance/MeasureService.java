@@ -114,8 +114,10 @@ public class MeasureService {
                             Instant.ofEpochMilli(r.getReceivedTs()));
                 }
             }
-            LOG.info("Time elapsed for {} event is {}s (= {}ms). Average of {}ms per event", request.getCount(),
+            LOG.info("Time elapsed for {} event is {}s (= {}ms). Average is {}ms per event", request.getCount(),
                     duration.getSeconds(), duration.toMillis(), duration.toMillis() / request.getCount());
+            LOG.info("Assuming a wait-time of 0.05s (50ms) on the device side a message needs {}ms from device to receiver",
+                    (duration.toMillis() - 50 * request.getCount()) / request.getCount());
             LOG.info("Expected response:{} Received responses: {}", request.getCount(), responses.size());
         });
         thingClient.registerForMeterEvents(handler);
