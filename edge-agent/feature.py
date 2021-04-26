@@ -1,8 +1,4 @@
-import os
-import os.path
 import json
-from json import JSONEncoder
-import uuid
 
 import paho
 
@@ -97,11 +93,11 @@ class Feature:
                     'path': resp_path,
                     'headers': resp_headers,
                     'value': {
-                        "id": request_id,
-                        "expected": count,
-                        "current": i
+                        "request_id": request_id,
+                        "total_count": count,
+                        "current_no": i + 1
                     }
                 }
                 if i == count - 1:
                     print("Sending {}".format(json.dumps(event)))
-                self.__mqttClient.publish('t', json.dumps(event), qos=0)
+                self.__mqttClient.publish('t', json.dumps(event), qos=1)

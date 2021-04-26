@@ -1,12 +1,9 @@
 package io.bosch.measurement.performance;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.bosch.measurement.ditto.AuthenticationProperties;
+import io.bosch.measurement.ditto.DittoClientConfig;
+import io.bosch.measurement.ditto.DittoThingClient;
 import org.eclipse.ditto.client.DittoClient;
 import org.eclipse.ditto.client.changes.Change;
 import org.eclipse.ditto.client.live.messages.RepliableMessage;
@@ -19,11 +16,14 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.bosch.measurement.ditto.AuthenticationProperties;
-import io.bosch.measurement.ditto.DittoClientConfig;
-import io.bosch.measurement.ditto.DittoThingClient;
+import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @Service
 public class MeasureService {
@@ -50,14 +50,14 @@ public class MeasureService {
 
     private static class CountingConsumer implements Consumer<RepliableMessage<?, Object>> {
         private final int expectedCount;
-        private final Consumer<Duration> targetConsumer;
+        private final BiConsumer<Duration, List<Response>> targetConsumer;
         private long startTime;
         private final List<Response> received;
 
-        public CountingConsumer(final int expectedCount, final Consumer<Duration> targetConsumer) {
+        public CountingConsumer(final int expectedCount, final BiConsumer<Duration, List<Response>> targetConsumer) {
             this.expectedCount = expectedCount;
             this.targetConsumer = targetConsumer;
-            this.received = new ArrayList<>();
+            this.received = new ArrayList<>(expectedCount);
         }
 
         @Override
@@ -66,18 +66,11 @@ public class MeasureService {
             try {
                 final Response data = new ObjectMapper().readValue(msg, Response.class);
                 received.add(data);
-                final int receivedCount = received.size();
                 final long lastReceivedTime = System.currentTimeMillis();
                 final Duration elapsedDuration = Duration.ofMillis(lastReceivedTime - startTime);
 
-                LOG.info("MessageId={} received. {} out of {} completed after {}ms", data.getCurrent(), receivedCount,
-                        data.getExpected(), elapsedDuration.toMillis());
-                if (LOG.isDebugEnabled() && receivedCount % 10 == 0) {
-                    LOG.debug("Events received: {}", receivedCount);
-                }
-                if (receivedCount >= expectedCount) {
-
-                    targetConsumer.accept(elapsedDuration);
+                if (data.getCurrentNo() >= data.getTotalCount()) {
+                    targetConsumer.accept(elapsedDuration, new ArrayList<>(received));
                 }
             } catch (final IOException e) {
                 LOG.error("Exception while parsing {}, {}", msg, e);
@@ -111,10 +104,19 @@ public class MeasureService {
 
     public String measureUsingEvents(final Request request) {
         thingClient.deregisterForMeterEvents();
-        final CountingConsumer handler = new CountingConsumer(request.getCount(), duration -> {
+        final CountingConsumer handler = new CountingConsumer(request.getCount(), (duration, responses) -> {
             thingClient.deregisterForMeterEvents();
-            LOG.info("Time elapsed for {} event is {}s ({}ms). Average of {}ms per event", request.getCount(),
+
+            if (LOG.isDebugEnabled()) {
+                for (Response r : responses) {
+                    LOG.debug("RequestId={} received. {} out of {} completed at {}", r.getRequestId(),
+                            r.getCurrentNo(), r.getTotalCount(),
+                            Instant.ofEpochMilli(r.getReceivedTs()));
+                }
+            }
+            LOG.info("Time elapsed for {} event is {}s (= {}ms). Average of {}ms per event", request.getCount(),
                     duration.getSeconds(), duration.toMillis(), duration.toMillis() / request.getCount());
+            LOG.info("Expected response:{} Received responses: {}", request.getCount(), responses.size());
         });
         thingClient.registerForMeterEvents(handler);
         handler.start();
