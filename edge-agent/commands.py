@@ -3,9 +3,10 @@ import re
 
 
 class MeasurementData:
-    def __init__(self, message_id, serial_number):
+    def __init__(self, message_id, expected, currentIndex):
         self.id = message_id
-        self.serialNumber = serial_number
+        self.expected = expected
+        self.current = currentIndex
 
     def toJson(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)

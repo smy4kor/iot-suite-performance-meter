@@ -6,7 +6,7 @@ import uuid
 
 import paho
 
-from commands import DittoCommand, DittoResponse
+from commands import DittoCommand, DittoResponse, MeasurementData
 from device_info import DeviceInfo
 
 
@@ -104,11 +104,7 @@ class Feature:
                 'topic': self.__deviceInfo.namespace + "/" + self.__deviceInfo.deviceId + "/things/live/messages/" + resp_subject,
                 'path': resp_path,
                 'headers': resp_headers,
-                'value': {
-                    "id": request_id,
-                    "expected": count,
-                    "current": i
-                }
+                'value': MeasurementData(request_id,count,i).__dict__
             }
             if i == count - 1:
                 print("Sending {}".format(json.dumps(event)))
