@@ -8,24 +8,12 @@ import org.eclipse.ditto.json.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.bosch.measurement.consumers.Counter.Status;
 import io.bosch.measurement.performance.MeasureService;
-import io.bosch.measurement.performance.Request;
 import io.bosch.measurement.performance.Response;
 
-public class DittoFeatureEventConsumer implements Consumer<Change> {
+public class DittoFeatureEventConsumer extends ConsumerBase implements Consumer<Change> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DittoFeatureEventConsumer.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private Request request;
-    private Counter counter = new Counter("", 0);
-
-    public void reset(final Request request) {
-        this.counter = new Counter(request.getId(), request.getCount());
-        this.request = request;
-    }
 
     @Override
     public void accept(final Change change) {
@@ -52,8 +40,6 @@ public class DittoFeatureEventConsumer implements Consumer<Change> {
         }
     }
 
-    public Status getStatus() {
-        return this.counter.getStatus();
-    }
+
 
 }
