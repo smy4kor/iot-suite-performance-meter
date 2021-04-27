@@ -38,14 +38,15 @@ public class MeasureService {
     public static final JsonPointer RESPONSE_PATH = JsonPointer.of("status/response");
 
     private DittoThingClient thingClient;
-
+    private DittoFeatureEventConsumer featureEventConsumer;
 
 
     @EventListener(ApplicationReadyEvent.class)
     public void onInit() throws InterruptedException, ExecutionException {
+        featureEventConsumer = new DittoFeatureEventConsumer();
         thingClient = new DittoThingClient(twinClient, liveClient, authenticationProperties.getDeviceId());
         thingClient.createFeatureIfNotPresent(FEATURE_ID);
-        thingClient.registerForFeatureChange(FEATURE_ID, new DittoFeatureEventConsumer());
+        thingClient.registerForFeatureChange(FEATURE_ID, featureEventConsumer);
     }
 
     public String measureUsingEvents(final Request request) {
@@ -63,6 +64,7 @@ public class MeasureService {
 
     public void measureUsingFeature(final Request request) {
         thingClient.updateFeature(FEATURE_ID, REQUEST_PATH, request);
+        featureEventConsumer.start(request);
     }
 
 }

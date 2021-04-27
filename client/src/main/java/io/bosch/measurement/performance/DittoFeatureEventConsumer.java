@@ -14,7 +14,8 @@ class DittoFeatureEventConsumer implements Consumer<Change> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DittoFeatureEventConsumer.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
-
+    private Request request;
+    private Counter counter;
 
     @Override
     public void accept(final Change change) {
@@ -32,8 +33,16 @@ class DittoFeatureEventConsumer implements Consumer<Change> {
         try {
             final Response data = objectMapper.readValue(value.toString(), Response.class);
             LOG.info("Received {}", data);
+            if (request.getId().equals(data.getId())) {
+                counter.accept(data);
+            }
         } catch (final IOException e) {
             LOG.error("Exception while parsing {}, {}", value, e);
         }
+    }
+
+    public void start(final Request request) {
+        this.counter = new Counter(request.getId(), request.getCount());
+        this.request = request;
     }
 }
