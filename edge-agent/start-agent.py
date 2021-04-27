@@ -3,6 +3,7 @@ import paho.mqtt.client as mqtt
 import time
 import json
 import argparse
+import re
 
 from commands import DittoCommand
 # from commands import MeasurementData
@@ -46,8 +47,7 @@ def process_event(msg: paho.mqtt.client.MQTTMessage):
     payload_str = str(msg.payload.decode("utf-8", "ignore"))
     print(payload_str)
     payload = json.loads(payload_str)
-    feature_id = payload.get('headers', {}).get('ditto-message-feature-id', None)
-
+    
     if msg.topic == DEVICE_INFO_TOPIC:
         global deviceInfo, meter_feature
         deviceInfo = DeviceInfo(payload)
@@ -56,48 +56,33 @@ def process_event(msg: paho.mqtt.client.MQTTMessage):
         print("======== Feature is ready =============")
     # elif msg.topic == "command///req//modified":
     #     handle_measurement_request(cmd)
-    elif feature_id and feature_id == meter_feature.featureId:
-        cmd = DittoCommand(payload, msg.topic)
+    else:
+        handle_measurement_request(msg,payload)
+
+def handle_measurement_request(msg: paho.mqtt.client.MQTTMessage, payload):
+    """Will process the measurement request based on path. If path is present then it will be a feature based update request."""
+
+    feature_id = get_feature_id(payload)
+    print("feature_id: " + feature_id)
+    if feature_id and feature_id == meter_feature.featureId:
+        print("check completed")
+        cmd = DittoCommand(payload, msg.topic, feature_id)
         cmd.print_info()
         meter_feature.handle(cmd)
-
-
-# def handle_measurement_request(cmd):
-#     # todo: also check
-#     if cmd.featureId == meter_feature.featureId and cmd.path.endswith('status/request'):
-#         print("processing request with ditto req id: " + str(cmd.getRequestId()))
-#         acknowledge(cmd)
-#         send_response(cmd)
-#     else:
-        print("Ignoring the message received for feature: " + str(cmd.featureId))
-        # else, from cache file stored with cmd.featureId and execute the scripts stored there
-
-
-# see https://wiki.bosch-si.com/pages/viewpage.action?spaceKey=MBSIOTSDK&title=Things+Protocol+Patterns
-# def send_response(cmd):
-#     mr = cmd.get_measurement_data()
-#     print("Responding to : {},{}".format(mr.id, mr.serialNumber))
-#     pth = "/features/{}/properties/status/response".format(meter_feature.featureId)
-#
-#     ditto_rsp_topic = "{}/{}/things/twin/commands/modify".format(deviceInfo.namespace, deviceInfo.deviceId)
-#     rsp = DittoResponse(ditto_rsp_topic, pth)
-#     rsp.prepareMeasurementResponse(mr)
-#     print("publishing response: " + rsp.toJson())
-#     mqtt_client.publish("e", rsp.toJson(), qos=1)
-#
-#
-# def acknowledge(cmd, value=None):
-#     status = 200
-#     mosquitto_topic = "command///res/" + str(cmd.getRequestId()) + "/" + str(status)
-#     # print("======== Sending acknowledgement for ditto requestId: %s =============" %(cmd.getRequestId()))
-#     akn_path = cmd.path.replace("inbox", "outbox")  # # "/features/manually-created-lua-agent/outbox/messages/install"
-#     rsp = DittoResponse(cmd.dittoTopic, akn_path, status)
-#     rsp.prepareAknowledgement(cmd.dittoCorrelationId)
-#     if value:
-#         rsp.value = value
-#
-#     mqtt_client.publish(mosquitto_topic, rsp.toJson())
-#     print("======== Acknowledgement sent on topic " + mosquitto_topic + " =============")
+    
+def get_feature_id(payload):
+    ## in case of event based request, feature id is in the headers
+    feature_id = payload.get('headers', {}).get('ditto-message-feature-id', None)
+    if feature_id:
+        return feature_id
+    
+    ## in case of feature update based request, feature id is in the path
+    pattern = "features/(.*)/properties/"  ## /features/measure-performance-feature/properties/status/request
+    x = re.search(pattern, payload.get('path', {}))
+    if x:
+        return x.group(1)
+    else:
+        return None
 
 
 if __name__ == "__main__":

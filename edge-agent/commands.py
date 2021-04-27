@@ -42,7 +42,7 @@ class DittoResponse:
 
 
 class DittoCommand:
-    def __init__(self, payload, topic):
+    def __init__(self, payload, topic, featureId):
         self.payload = payload
         self.mqttTopic = topic
         self.dittoTopic = payload['topic']
@@ -50,22 +50,20 @@ class DittoCommand:
         self.dittoCorrelationId = payload['headers']["correlation-id"]
         self.dittoOriginator = payload['headers']["ditto-originator"]
         self.requestHeaders = payload['headers']
-        self.value = json.loads(payload['value'])
-        self.featureId = payload['headers']['ditto-message-feature-id']
+        
+        val = payload['value']
+        # in case of events, the value is delivered as string. In case of feature update, the value is delivered as dict.
+        if type(val) is dict:
+            json.loads(json.dumps(val))
+        else:
+            self.value = json.loads(val)
+        self.featureId = featureId
 
     def get_request_id(self):
         # everything between req/ and /install is the request id.
         # Ex topic: command///req/01fp-pdid6m-12i8u431qmpi1b-1m2zqv2replies/install
         pattern = "req/(.*)/"
         x = re.search(pattern, self.mqttTopic)
-        if x:
-            return x.group(1)
-        else:
-            return None
-
-    def get_feature_id(self):
-        pattern = "features/(.*)/properties/"  ## /features/measure-performance-feature/properties/status/request
-        x = re.search(pattern, self.path)
         if x:
             return x.group(1)
         else:
