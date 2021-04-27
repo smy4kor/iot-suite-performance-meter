@@ -76,32 +76,37 @@ class Feature:
         self.acknowledge(command)
 
         if command.mqttTopic == "command///req//start":
-            print("Start sending messages...")
-            count = command.value.get('count', 100)
-            method = command.value.get('method', 'SUITE')
-            request_id = command.value.get('id')
-            resp_headers = command.value.get('responseHeaders',{
-                        "response-required": False,
-                        "content-type": "application/json",
-                        "correlation-id": "dont-care",
-                    })
-            
-            resp_subject = 'meter.event.response';
-            resp_path = "/features/{}/outbox/messages/{}".format(command.featureId, resp_subject)
-            print("Expected response message count = {}, method = {}, headers={}, request id = {} ".format(count, method,resp_headers,request_id))
+            self.respondAsEvents(command)
+        elif command.mqttTopic == "command///req//modified" or command.mqttTopic == "command///req//created":
+            print("Responding as feature update")
+                
+    def respondAsEvents(self, command: DittoCommand):
+        print("Start sending messages...")
+        count = command.value.get('count', 100)
+        method = command.value.get('method', 'SUITE')
+        request_id = command.value.get('id')
+        resp_headers = command.value.get('responseHeaders',{
+                    "response-required": False,
+                    "content-type": "application/json",
+                    "correlation-id": "dont-care",
+                })
+        
+        resp_subject = 'meter.event.response';
+        resp_path = "/features/{}/outbox/messages/{}".format(command.featureId, resp_subject)
+        print("Expected response message count = {}, method = {}, headers={}, request id = {} ".format(count, method,resp_headers,request_id))
 
-            for i in range(count):
-                event = {
-                    # 'topic': command.dittoTopic,
-                    'topic': self.__deviceInfo.namespace + "/" + self.__deviceInfo.deviceId + "/things/live/messages/" + resp_subject,
-                    'path': resp_path,
-                    'headers': resp_headers,
-                    'value': {
-                        "id": request_id,
-                        "expected": count,
-                        "current": i
-                    }
+        for i in range(count):
+            event = {
+                # 'topic': command.dittoTopic,
+                'topic': self.__deviceInfo.namespace + "/" + self.__deviceInfo.deviceId + "/things/live/messages/" + resp_subject,
+                'path': resp_path,
+                'headers': resp_headers,
+                'value': {
+                    "id": request_id,
+                    "expected": count,
+                    "current": i
                 }
-                if i == count - 1:
-                    print("Sending {}".format(json.dumps(event)))
-                self.__mqttClient.publish('t', json.dumps(event), qos=0)
+            }
+            if i == count - 1:
+                print("Sending {}".format(json.dumps(event)))
+            self.__mqttClient.publish('t', json.dumps(event), qos=0)
