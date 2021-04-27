@@ -70,7 +70,8 @@ public class MeasureService {
                 final long lastReceivedTime = System.currentTimeMillis();
                 final Duration elapsedDuration = Duration.ofMillis(lastReceivedTime - startTime);
 
-                LOG.info("MessageId={} received. {} out of {} completed after {}ms", data.getCurrent(), receivedCount,
+                LOG.info("MessageOrderId={} received. {} out of {} completed after {}ms", data.getCurrent(),
+                        receivedCount,
                         data.getExpected(), elapsedDuration.toMillis());
                 if (LOG.isDebugEnabled() && receivedCount % 10 == 0) {
                     LOG.debug("Events received: {}", receivedCount);
