@@ -38,6 +38,12 @@ public class MeasureController {
         return request;
     }
 
+    @RequestMapping(value = "status", method = RequestMethod.GET)
+    @ResponseStatus(value = HttpStatus.ACCEPTED)
+    public Map getStatus() {
+        return service.getStatus();
+    }
+
     private static String generateId() {
         return UUID.randomUUID().toString().replace("-", "");
     }

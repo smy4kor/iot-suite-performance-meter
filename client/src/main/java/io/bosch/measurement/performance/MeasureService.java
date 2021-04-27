@@ -1,5 +1,7 @@
 package io.bosch.measurement.performance;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import org.eclipse.ditto.client.DittoClient;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import io.bosch.measurement.ditto.AuthenticationProperties;
 import io.bosch.measurement.ditto.DittoClientConfig;
 import io.bosch.measurement.ditto.DittoThingClient;
+import io.bosch.measurement.performance.Counter.Status;
 
 @Service
 public class MeasureService {
@@ -38,12 +41,13 @@ public class MeasureService {
     public static final JsonPointer RESPONSE_PATH = JsonPointer.of("status/response");
 
     private DittoThingClient thingClient;
-    private DittoFeatureEventConsumer featureEventConsumer;
-
+    private final DittoFeatureEventConsumer featureEventConsumer = new DittoFeatureEventConsumer();
+    private final DittoWsEventConsumer wsEventConsumer = new DittoWsEventConsumer();
 
     @EventListener(ApplicationReadyEvent.class)
     public void onInit() throws InterruptedException, ExecutionException {
-        featureEventConsumer = new DittoFeatureEventConsumer();
+        // featureEventConsumer = new DittoFeatureEventConsumer();
+        // wsEventConsumer = new DittoWsEventConsumer();
         thingClient = new DittoThingClient(twinClient, liveClient, authenticationProperties.getDeviceId());
         thingClient.createFeatureIfNotPresent(FEATURE_ID);
         thingClient.registerForFeatureChange(FEATURE_ID, featureEventConsumer);
@@ -51,20 +55,22 @@ public class MeasureService {
 
     public String measureUsingEvents(final Request request) {
         thingClient.deregisterForMeterEvents();
-        final DittoWsEventConsumer handler = new DittoWsEventConsumer(request.getCount(), duration -> {
-            thingClient.deregisterForMeterEvents();
-            LOG.info("Time elapsed for {} event is {}s ({}ms). Average of {}ms per event", request.getCount(),
-                    duration.getSeconds(), duration.toMillis(), duration.toMillis() / request.getCount());
-        });
-        thingClient.registerForMeterEvents(handler);
-        handler.start();
+        wsEventConsumer.reset(request);
+        thingClient.registerForMeterEvents(wsEventConsumer);
         thingClient.sendStartMessage(FEATURE_ID, request);
         return "Meter started";
     }
 
     public void measureUsingFeature(final Request request) {
+        featureEventConsumer.reset(request);
         thingClient.updateFeature(FEATURE_ID, REQUEST_PATH, request);
-        featureEventConsumer.start(request);
+    }
+
+    public Map getStatus() {
+        final HashMap<String, Status> res = new HashMap<String, Status>();
+        res.put("feature-based", featureEventConsumer.getStatus());
+        res.put("event-based", wsEventConsumer.getStatus());
+        return res;
     }
 
 }

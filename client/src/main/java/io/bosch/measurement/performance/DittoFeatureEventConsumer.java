@@ -10,12 +10,19 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.bosch.measurement.performance.Counter.Status;
+
 class DittoFeatureEventConsumer implements Consumer<Change> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DittoFeatureEventConsumer.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private Request request;
-    private Counter counter;
+    private Counter counter = new Counter("", 0);
+
+    public void reset(final Request request) {
+        this.counter = new Counter(request.getId(), request.getCount());
+        this.request = request;
+    }
 
     @Override
     public void accept(final Change change) {
@@ -32,17 +39,18 @@ class DittoFeatureEventConsumer implements Consumer<Change> {
     public void process(final JsonValue value) {
         try {
             final Response data = objectMapper.readValue(value.toString(), Response.class);
-            LOG.info("Received {}", data);
             if (request.getId().equals(data.getId())) {
                 counter.accept(data);
+            } else {
+                LOG.error("Received unknown event {}. Expecting {}", data, request.getId());
             }
         } catch (final IOException e) {
             LOG.error("Exception while parsing {}, {}", value, e);
         }
     }
 
-    public void start(final Request request) {
-        this.counter = new Counter(request.getId(), request.getCount());
-        this.request = request;
+    public Status getStatus() {
+        return this.counter.getStatus();
     }
+
 }
