@@ -1,4 +1,4 @@
-package io.bosch.measurement.performance;
+package io.bosch.measurement.consumers;
 
 import java.io.IOException;
 import java.util.function.Consumer;
@@ -9,9 +9,11 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.bosch.measurement.performance.Counter.Status;
+import io.bosch.measurement.consumers.Counter.Status;
+import io.bosch.measurement.performance.Request;
+import io.bosch.measurement.performance.Response;
 
-class DittoWsEventConsumer implements Consumer<RepliableMessage<?, Object>> {
+public class DittoWsEventConsumer implements Consumer<RepliableMessage<?, Object>> {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private Request request;
     private Counter counter = new Counter("", 0);

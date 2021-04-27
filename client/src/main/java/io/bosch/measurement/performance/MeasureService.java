@@ -14,10 +14,12 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+import io.bosch.measurement.consumers.DittoFeatureEventConsumer;
+import io.bosch.measurement.consumers.DittoWsEventConsumer;
+import io.bosch.measurement.consumers.Counter.Status;
 import io.bosch.measurement.ditto.AuthenticationProperties;
 import io.bosch.measurement.ditto.DittoClientConfig;
 import io.bosch.measurement.ditto.DittoThingClient;
-import io.bosch.measurement.performance.Counter.Status;
 
 @Service
 public class MeasureService {

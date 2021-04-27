@@ -1,4 +1,4 @@
-package io.bosch.measurement.performance;
+package io.bosch.measurement.controller;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.bosch.measurement.performance.MeasureService;
+import io.bosch.measurement.performance.Request;
 import lombok.RequiredArgsConstructor;
 
 @RestController

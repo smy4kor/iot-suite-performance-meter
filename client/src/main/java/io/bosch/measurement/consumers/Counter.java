@@ -1,4 +1,4 @@
-package io.bosch.measurement.performance;
+package io.bosch.measurement.consumers;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -7,6 +7,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.bosch.measurement.performance.Response;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
