@@ -40,6 +40,14 @@ public class MeasureController {
         return request;
     }
 
+    @RequestMapping(value = "using-rest/{count}", method = RequestMethod.GET)
+    @ResponseStatus(value = HttpStatus.ACCEPTED)
+    public Request measureUsingRest(@PathVariable(name = "count", required = true) final int count) {
+        final Request request = new Request(generateId(), count, null);
+        service.measureUsingRest(request);
+        return request;
+    }
+
     @RequestMapping(value = "status", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Map getStatus() {
