@@ -3,9 +3,12 @@ package io.bosch.measurement.consumers;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Ordering;
 
 import io.bosch.measurement.performance.Response;
 import lombok.AllArgsConstructor;
@@ -32,6 +35,7 @@ public class Counter {
         private int received;
         private boolean completed;
         private boolean inOrder;
+        private List<Integer> messages;
         private String duration;
     }
 
@@ -54,12 +58,19 @@ public class Counter {
     public Status getStatus() {
         final String elapsedDuration = String.format("%sms", Duration.ofMillis(lastReceivedEventTime - startTime));
         final boolean completed = expectedCount == received.size();
+
+        final List<Integer> indexReceived = received.stream().map(x -> x.getCurrent()).collect(Collectors.toList());
+        final boolean isInOrder = Ordering.natural().isOrdered(indexReceived);
+
         return Status.builder()//
                 .id(id)//
                 .expected(expectedCount) //
                 .received(received.size())//
                 .completed(completed)//
+                .inOrder(isInOrder)//
+                .messages(indexReceived)
                 .duration(elapsedDuration).build();
     }
+
 
 }
