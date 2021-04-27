@@ -85,6 +85,21 @@ class Feature:
 
     def respondUsingFeature(self, command: DittoCommand, count, request_id):
         print("Responding as feature update")
+        dittoRspTopic = "{}/{}/things/twin/commands/modify".format(self.__deviceInfo.namespace, self.__deviceInfo.deviceId)
+        for i in range(count):
+            event = {
+                # 'topic': command.dittoTopic,
+                'topic': dittoRspTopic,
+                'path': "/features/{}/properties/status/response".format(command.featureId),
+                'headers': {
+                    "response-required": False,
+                    "content-type": "application/json"
+                },
+                'value': MeasurementData(request_id,count,i).__dict__
+            }
+            if i == count - 1:
+                print("Sending {}".format(json.dumps(event)))
+            self.__mqttClient.publish('t', json.dumps(event), qos=0)
                         
     def respondUsingEvents(self, command: DittoCommand, count, request_id):
         print("Start sending messages...")

@@ -55,7 +55,7 @@ class DittoCommand:
         val = payload['value']
         # in case of events, the value is delivered as string. In case of feature update, the value is delivered as dict.
         if type(val) is dict:
-            json.loads(json.dumps(val))
+            self.value = json.loads(json.dumps(val))
         else:
             self.value = json.loads(val)
         self.featureId = featureId
