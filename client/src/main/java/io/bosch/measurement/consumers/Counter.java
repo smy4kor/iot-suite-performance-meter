@@ -57,7 +57,7 @@ public class Counter {
     }
 
     public void accept(final Response data) {
-        if (received.add(data)) {
+        if (!received.add(data)) {
             duplicateReceivedCount++;
         } else {
             lastReceivedEventTime = System.currentTimeMillis();
