@@ -8,6 +8,8 @@
     <artifactId>iot-suite-performance-meter</artifactId>
     <version>1-SNAPSHOT</version>
 
+    <name>iot-suite-performance-meter::parent</name>
+
     <packaging>pom</packaging>
 
     <modules>
