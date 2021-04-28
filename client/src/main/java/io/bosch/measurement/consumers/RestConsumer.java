@@ -17,10 +17,10 @@ public class RestConsumer extends ConsumerBase {
     private static final Logger LOG = LoggerFactory.getLogger(RestConsumer.class);
 
     public void accept(final Response response) {
-        if (request.getId().equals(response.getId())) {
+        if (request != null && request.getId().equals(response.getId())) {
             counter.accept(response);
         } else {
-            LOG.error("Received unknown event {}. Expecting {}", response, request.getId());
+            LOG.error("Received unknown event {}", response);
         }
     }
 }

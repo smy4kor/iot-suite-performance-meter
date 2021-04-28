@@ -83,10 +83,11 @@ class Feature:
         print("Sending {} events with a delay of {} seconds".format(count, delayInSec))
         if command.mqttTopic == "command///req//start":
             self.respondUsingEvents(command, count, delayInSec, request_id)
-        elif command.mqttTopic == "command///req//modified" or command.mqttTopic == "command///req//created":
+        elif command.path.endswith("properties/status/request") and (command.mqttTopic == "command///req//modified" or command.mqttTopic == "command///req//created"):
             self.respondUsingFeature(command, count, delayInSec, request_id)
 
     def respondUsingFeature(self, command: DittoCommand, count, delayInSec, request_id):
+        print("Request path is " + command.path)
         dittoRspTopic = "{}/{}/things/twin/commands/modify".format(self.__deviceInfo.namespace, self.__deviceInfo.deviceId)
         for i in range(count):
             event = {

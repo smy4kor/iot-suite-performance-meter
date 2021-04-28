@@ -12,10 +12,11 @@ import io.bosch.measurement.performance.Response;
 @RestController
 @RequestMapping("api/v1/consumer")
 public class ConsumerController {
+
     @Autowired
     RestConsumer restConsumer;
 
-    @PostMapping("/")
+    @PostMapping
     public Response receiveResponse(@RequestBody final Response response) {
         restConsumer.accept(response);
         return response;
