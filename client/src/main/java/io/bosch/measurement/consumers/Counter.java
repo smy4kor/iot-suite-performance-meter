@@ -1,28 +1,28 @@
 package io.bosch.measurement.consumers;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Ordering;
+import io.bosch.measurement.performance.Response;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.joda.time.Duration;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Ordering;
-
-import io.bosch.measurement.performance.Response;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Counter {
     private final String id;
     private final int expectedCount;
+    private int duplicateReceivedCount = 0;
     private final int delay;
-    private final List<Response> received;
+    private final Set<Response> received;
     private final long startTime;
     private long lastReceivedEventTime;
 
@@ -40,6 +40,7 @@ public class Counter {
         private boolean inOrder;
         // private List<Integer> messages;
         private String timeTaken;
+        private int duplicatesReceived;
 
         /**
          * This will subtract the delay added to the response.
@@ -51,16 +52,19 @@ public class Counter {
         this.id = id;
         this.expectedCount = expectedCount;
         this.delay = delay;
-        this.received = new ArrayList<>();
+        this.received = new LinkedHashSet<>(expectedCount);
         this.startTime = System.currentTimeMillis();
     }
 
     public void accept(final Response data) {
-        received.add(data);
-        lastReceivedEventTime = System.currentTimeMillis();
-        if (received.size() == expectedCount) {
-            final String elapsedDuration = prettify(lastReceivedEventTime - startTime);
-            LOG.info("Received {} events in {}. Request id {}", expectedCount, elapsedDuration, id);
+        if (!received.add(data)) {
+            duplicateReceivedCount++;
+        } else {
+            lastReceivedEventTime = System.currentTimeMillis();
+            if (data.getCurrent() >= data.getExpected()) {
+                final String elapsedDuration = prettify(lastReceivedEventTime - startTime);
+                LOG.info("Received {} events in {}. Request id {}", expectedCount, elapsedDuration, id);
+            }
         }
     }
 
@@ -73,21 +77,21 @@ public class Counter {
 
         final List<Integer> indexReceived = received.stream().map(x -> x.getCurrent()).collect(Collectors.toList());
         final boolean isInOrder = Ordering.natural().isOrdered(indexReceived);
+        final long averageTimePerMsg = (elapsedTimeWithDelay - (received.size() * delay))
+                / received.size();
 
-        final Status status = Status.builder()//
+        LOG.debug("id={}; elapsedTimeWithDelay= {}ms; averageTimePerMsg={}ms", id, elapsedTimeWithDelay, averageTimePerMsg);
+        return Status.builder()//
                 .id(id)//
                 .expected(expectedCount) //
                 .received(received.size())//
                 .completed(completed)//
                 .inOrder(isInOrder)//
+                .duplicatesReceived(duplicateReceivedCount)
                 // .messages(indexReceived)//
                 .timeTaken(prettify(elapsedTimeWithDelay))//
+                .timePerMessage(prettify(averageTimePerMsg))
                 .build();
-
-        final long averageTimePerMsg = (lastReceivedEventTime - startTime - (received.size() * delay))
-                / received.size();
-        status.setTimePerMessage(prettify(averageTimePerMsg));
-        return status;
     }
 
     private String prettify(final long milliSeconds) {
