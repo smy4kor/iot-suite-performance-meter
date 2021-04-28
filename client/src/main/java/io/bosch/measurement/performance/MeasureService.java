@@ -86,4 +86,10 @@ public class MeasureService {
         return res;
     }
 
+    /*
+     * public Flux<List> getStatusStream() { return
+     * Flux.interval(Duration.ofSeconds(1)).onBackpressureDrop().map(x -> {
+     * return Arrays.asList(UUID.randomUUID(), UUID.randomUUID()); }); }
+     */
+
 }

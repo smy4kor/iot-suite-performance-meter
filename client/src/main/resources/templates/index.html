@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link data-th-href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <link data-th-href="@{/css/main.css}" rel="stylesheet">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="row">
+        <div id="title">
+            <h1>Bosch Iot Suite: Performance Meter</h1>
+        </div>
+        <table id="allMovies" class="table table-striped">
+            <thead>
+            <tr>
+                <th width="20%">Name</th>
+                <th>Events Received</th>
+                <th>Total Time Taken</th>
+                <th>Average Time Per Message</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr class="result" th:each="entry : ${allstatus}">
+                <td th:text="${entry.key}">keyvalue</td>
+    			<td th:if="${entry?.value}" th:class="'text '+${entry?.value?.completed ? 'text-success' : 'text-danger'}">
+    			   	<span th:text="${entry?.value?.received}"></span> out of 
+    			   	<span th:text="${entry?.value?.expected}"></span>
+    			   	<br>
+    			   	<span class="badge badge-danger" th:unless="${entry?.value?.inOrder}">Not in order</span>
+    			</td>
+    			<td th:unless="${entry?.value}">
+    			   	No Data
+    			</td>
+    			
+    			<td th:text="${entry?.value?.timeTaken}">Total time</td>
+    			<td th:text="${entry?.value?.timePerMessage}">Average time</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
