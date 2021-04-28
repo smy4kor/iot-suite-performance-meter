@@ -26,7 +26,4 @@ pip3 install --upgrade requests
 -Dauthentication.serviceInstanceId=<your-service-instance-id>
 ```
 ### Step 3: Start a measurement
-Use the following end points to trigger performance measurement.
-* **Using 100 feature update:** http://localhost:8080/api/v1/measure/using-feature/100
-* **Using 100 event updates:** http://localhost:8080/api/v1/measure/using-events/100
-* **Check the status:** http://localhost:8080/api/v1/measure/status/<request-id>
+Use the provided postman collection to trigger the measurements.
