@@ -6,6 +6,7 @@ import uuid
 
 import paho
 import time
+import requests
 
 from commands import DittoCommand, DittoResponse, MeasurementData
 from device_info import DeviceInfo
@@ -79,15 +80,18 @@ class Feature:
         count = command.value.get('count', 100)
         delayInSec = command.value.get('delay', 0) / 1000
         request_id = command.value.get('id')
+        response_url = command.value.get('responseUrl')
         
         print("Sending {} events with a delay of {} seconds".format(count, delayInSec))
-        if command.mqttTopic == "command///req//start":
+        if response_url:
+            self.respondUsingRest(command, count, delayInSec, request_id,response_url)
+        elif command.mqttTopic == "command///req//start":
             self.respondUsingEvents(command, count, delayInSec, request_id)
         elif command.path.endswith("properties/status/request") and (command.mqttTopic == "command///req//modified" or command.mqttTopic == "command///req//created"):
             self.respondUsingFeature(command, count, delayInSec, request_id)
 
     def respondUsingFeature(self, command: DittoCommand, count, delayInSec, request_id):
-        print("Request path is " + command.path)
+        print("Responding using feature update")
         dittoRspTopic = "{}/{}/things/twin/commands/modify".format(self.__deviceInfo.namespace, self.__deviceInfo.deviceId)
         for i in range(count):
             event = {
@@ -106,7 +110,7 @@ class Feature:
             self.__mqttClient.publish('e', json.dumps(event), qos=1)
                         
     def respondUsingEvents(self, command: DittoCommand, count, delayInSec, request_id):
-        print("Start sending messages...")
+        print("Responding using events")
         resp_headers = command.value.get('responseHeaders', {
                     "response-required": False,
                     "content-type": "application/json",
@@ -130,3 +134,9 @@ class Feature:
             time.sleep(delayInSec)
             self.__mqttClient.publish('t', json.dumps(event), qos=1)
             
+    def respondUsingRest(self, command: DittoCommand, count, delayInSec, request_id, response_url):
+        print("Responding over http url: " + response_url)
+        for i in range(count):
+            postData = MeasurementData(request_id, count, i).__dict__
+            time.sleep(delayInSec)
+            requests.post(response_url, data = postData)

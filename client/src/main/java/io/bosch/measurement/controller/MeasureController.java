@@ -29,7 +29,8 @@ public class MeasureController {
     public Request measureUsingEvents(@PathVariable(name = "count", required = true) final int count,
             @RequestParam(value = "delay", required = false) final int delay,
             @RequestBody(required = false) final Map desiredResponseHeaders) {
-        final Request request = new Request(generateId(), count, delay, enrich(desiredResponseHeaders));
+        final Request request = Request.builder().id(generateId()).count(count).delay(delay)
+                .responseHeaders(enrich(desiredResponseHeaders)).build();
         service.measureUsingEvents(request);
         return request;
     }
@@ -38,7 +39,7 @@ public class MeasureController {
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Request measureUsingFeature(@PathVariable(name = "count", required = true) final int count,
             @RequestParam(value = "delay", required = false) final int delay) {
-        final Request request = new Request(generateId(), count, delay, null);
+        final Request request = Request.builder().id(generateId()).count(count).delay(delay).build();
         service.measureUsingFeature(request);
         return request;
     }
@@ -46,8 +47,10 @@ public class MeasureController {
     @RequestMapping(value = "using-rest/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Request measureUsingRest(@PathVariable(name = "count", required = true) final int count,
-            @RequestParam(value = "delay", required = false) final int delay) {
-        final Request request = new Request(generateId(), count, delay, null);
+            @RequestParam(value = "delay", required = false) final int delay,
+            @RequestParam(value = "response-url", required = true) final String responseUrl) {
+        final Request request = Request.builder().id(generateId()).count(count).delay(delay).responseUrl(responseUrl)
+                .build();
         service.measureUsingRest(request);
         return request;
     }

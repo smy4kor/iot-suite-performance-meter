@@ -75,8 +75,7 @@ public class MeasureService {
 
     public void measureUsingRest(final Request request) {
         restConsumer.reset(request);
-        // todo: send a event to the device with a custom header containing the
-        // endpoint of this application.
+        thingClient.sendStartMessage(FEATURE_ID, request);
     }
 
     public Map getStatus() {
