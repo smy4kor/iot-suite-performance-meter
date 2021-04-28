@@ -32,9 +32,12 @@
 							<td th:if="${entry?.value}"
 								th:class="'text '+${entry?.value?.completed ? 'text-success' : 'text-danger'}">
 								<span th:text="${entry?.value?.received}"></span> out of <span
-								th:text="${entry?.value?.expected}"></span> <br> <span
-								class="badge badge-danger" th:unless="${entry?.value?.inOrder}">Not
+								th:text="${entry?.value?.expected}"></span> <br> 
+								
+								<span class="badge badge-danger" th:unless="${entry?.value?.inOrder}">Not
 									in order</span>
+									
+								<span class="badge badge-warning" th:if="${entry?.value?.duplicatesReceived > 0}">Received duplicates</span>
 							</td>
 							<td th:unless="${entry?.value}">No Data</td>
 
