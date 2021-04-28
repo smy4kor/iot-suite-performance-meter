@@ -3,9 +3,10 @@ import re
 
 
 class MeasurementData:
-    def __init__(self, message_id, serial_number):
+    def __init__(self, message_id, expected, currentIndex):
         self.id = message_id
-        self.serialNumber = serial_number
+        self.expected = expected
+        self.current = currentIndex
 
     def toJson(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -54,7 +55,7 @@ class DittoCommand:
         val = payload['value']
         # in case of events, the value is delivered as string. In case of feature update, the value is delivered as dict.
         if type(val) is dict:
-            json.loads(json.dumps(val))
+            self.value = json.loads(json.dumps(val))
         else:
             self.value = json.loads(val)
         self.featureId = featureId
@@ -107,3 +108,4 @@ class DittoCommand:
 
     def response_required(self) -> bool:
         return self.payload['headers']['response-required']
+    
