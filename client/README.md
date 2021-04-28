@@ -26,4 +26,6 @@ pip3 install --upgrade requests
 -Dauthentication.serviceInstanceId=<your-service-instance-id>
 ```
 ### Step 3: Start a measurement
-Use the provided postman collection to trigger the measurements.
+Measurement can be started using any of the below options.
+* Using the UI - http://localhost:8080/ui
+* Using the provided postman collection.

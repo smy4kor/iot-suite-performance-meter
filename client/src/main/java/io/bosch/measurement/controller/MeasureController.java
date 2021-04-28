@@ -1,8 +1,6 @@
 package io.bosch.measurement.controller;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,8 +27,8 @@ public class MeasureController {
     public Request measureUsingEvents(@PathVariable(name = "count", required = true) final int count,
             @RequestParam(value = "delay", required = false) final int delay,
             @RequestBody(required = false) final Map desiredResponseHeaders) {
-        final Request request = Request.builder().id(generateId()).count(count).delay(delay)
-                .responseHeaders(enrich(desiredResponseHeaders)).build();
+        final Request request = Request.builder().id(RequestUtil.generateId()).count(count).delay(delay)
+                .responseHeaders(RequestUtil.enrichHeaders(desiredResponseHeaders)).build();
         service.measureUsingEvents(request);
         return request;
     }
@@ -39,7 +37,7 @@ public class MeasureController {
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Request measureUsingFeature(@PathVariable(name = "count", required = true) final int count,
             @RequestParam(value = "delay", required = false) final int delay) {
-        final Request request = Request.builder().id(generateId()).count(count).delay(delay).build();
+        final Request request = Request.builder().id(RequestUtil.generateId()).count(count).delay(delay).build();
         service.measureUsingFeature(request);
         return request;
     }
@@ -49,8 +47,8 @@ public class MeasureController {
     public Request measureUsingRest(@PathVariable(name = "count", required = true) final int count,
             @RequestParam(value = "delay", required = false) final int delay,
             @RequestParam(value = "response-url", required = true) final String responseUrl) {
-        final Request request = Request.builder().id(generateId()).count(count).delay(delay).responseUrl(responseUrl)
-                .build();
+        final Request request = Request.builder().id(RequestUtil.generateId()).count(count).delay(delay)
+                .responseUrl(responseUrl).build();
         service.measureUsingRest(request);
         return request;
     }
@@ -61,19 +59,4 @@ public class MeasureController {
         return service.getStatus();
     }
 
-    private static String generateId() {
-        return UUID.randomUUID().toString().replace("-", "");
-    }
-
-    private Map enrich(Map desiredResponseHeaders) {
-        if (desiredResponseHeaders != null) {
-            return desiredResponseHeaders;
-        }
-
-        desiredResponseHeaders = new HashMap<>();
-        desiredResponseHeaders.put("response-required", false);
-        desiredResponseHeaders.put("content-type", "application/json");
-        desiredResponseHeaders.put("correlation-id", "dont-care");
-        return desiredResponseHeaders;
-    }
 }

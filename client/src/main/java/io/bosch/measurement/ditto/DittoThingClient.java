@@ -125,7 +125,6 @@ public class DittoThingClient {
             final String payload = new ObjectMapper().writeValueAsString(request);
             twinClient.live().forId(ThingId.of(thingId)).forFeature(featureId).message().from().subject("start")
                     .payload(payload).send();
-            LOG.debug("Start message send to feature: {}", featureId);
         } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
