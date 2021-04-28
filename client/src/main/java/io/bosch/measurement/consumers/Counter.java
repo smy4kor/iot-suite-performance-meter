@@ -12,7 +12,7 @@ import org.joda.time.format.PeriodFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,7 +52,7 @@ public class Counter {
         this.id = id;
         this.expectedCount = expectedCount;
         this.delay = delay;
-        this.received = new HashSet<>(expectedCount);
+        this.received = new LinkedHashSet<>(expectedCount);
         this.startTime = System.currentTimeMillis();
     }
 
@@ -77,8 +77,11 @@ public class Counter {
 
         final List<Integer> indexReceived = received.stream().map(x -> x.getCurrent()).collect(Collectors.toList());
         final boolean isInOrder = Ordering.natural().isOrdered(indexReceived);
+        final long averageTimePerMsg = (elapsedTimeWithDelay - (received.size() * delay))
+                / received.size();
 
-        final Status status = Status.builder()//
+        LOG.debug("id={}; elapsedTimeWithDelay= {}ms; averageTimePerMsg={}ms", id, elapsedTimeWithDelay, averageTimePerMsg);
+        return Status.builder()//
                 .id(id)//
                 .expected(expectedCount) //
                 .received(received.size())//
@@ -87,12 +90,8 @@ public class Counter {
                 .duplicatesReceived(duplicateReceivedCount)
                 // .messages(indexReceived)//
                 .timeTaken(prettify(elapsedTimeWithDelay))//
+                .timePerMessage(prettify(averageTimePerMsg))
                 .build();
-
-        final long averageTimePerMsg = (lastReceivedEventTime - startTime - (received.size() * delay))
-                / received.size();
-        status.setTimePerMessage(prettify(averageTimePerMsg));
-        return status;
     }
 
     private String prettify(final long milliSeconds) {
