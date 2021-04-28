@@ -9,10 +9,10 @@ public abstract class ConsumerBase {
 
     final ObjectMapper objectMapper = new ObjectMapper();
     Request request;
-    Counter counter = new Counter("", 0);
+    Counter counter = new Counter("", 0, 0);
 
     public void reset(final Request request) {
-        this.counter = new Counter(request.getId(), request.getCount());
+        this.counter = new Counter(request.getId(), request.getCount(), request.getDelay());
         this.request = request;
     }
 

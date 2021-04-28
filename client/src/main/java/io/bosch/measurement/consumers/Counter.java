@@ -1,10 +1,12 @@
 package io.bosch.measurement.consumers;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.joda.time.Duration;
+import org.joda.time.format.PeriodFormatter;
+import org.joda.time.format.PeriodFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +21,7 @@ import lombok.NoArgsConstructor;
 public class Counter {
     private final String id;
     private final int expectedCount;
+    private final int delay;
     private final List<Response> received;
     private final long startTime;
     private long lastReceivedEventTime;
@@ -35,13 +38,19 @@ public class Counter {
         private int received;
         private boolean completed;
         private boolean inOrder;
-        private List<Integer> messages;
-        private String duration;
+        // private List<Integer> messages;
+        private String timeTaken;
+
+        /**
+         * This will subtract the delay added to the response.
+         */
+        private String timePerMessage;
     }
 
-    public Counter(final String id, final int expectedCount) {
+    public Counter(final String id, final int expectedCount, final int delay) {
         this.id = id;
         this.expectedCount = expectedCount;
+        this.delay = delay;
         this.received = new ArrayList<>();
         this.startTime = System.currentTimeMillis();
     }
@@ -50,27 +59,48 @@ public class Counter {
         received.add(data);
         lastReceivedEventTime = System.currentTimeMillis();
         if (received.size() == expectedCount) {
-            final Duration elapsedDuration = Duration.ofMillis(lastReceivedEventTime - startTime);
+            final String elapsedDuration = prettify(lastReceivedEventTime - startTime);
             LOG.info("Received {} events in {}. Request id {}", expectedCount, elapsedDuration, id);
         }
     }
 
     public Status getStatus() {
-        final String elapsedDuration = String.format("%sms", Duration.ofMillis(lastReceivedEventTime - startTime));
+        if (received.isEmpty()) {
+            return null;
+        }
+        final long elapsedTimeWithDelay = lastReceivedEventTime - startTime;
         final boolean completed = expectedCount == received.size();
 
         final List<Integer> indexReceived = received.stream().map(x -> x.getCurrent()).collect(Collectors.toList());
         final boolean isInOrder = Ordering.natural().isOrdered(indexReceived);
 
-        return Status.builder()//
+        final Status status = Status.builder()//
                 .id(id)//
                 .expected(expectedCount) //
                 .received(received.size())//
                 .completed(completed)//
                 .inOrder(isInOrder)//
-                .messages(indexReceived)
-                .duration(elapsedDuration).build();
+                // .messages(indexReceived)//
+                .timeTaken(prettify(elapsedTimeWithDelay))//
+                .build();
+
+        final long averageTimePerMsg = (lastReceivedEventTime - startTime - (received.size() * delay))
+                / received.size();
+        status.setTimePerMessage(prettify(averageTimePerMsg));
+        return status;
     }
 
+    private String prettify(final long milliSeconds) {
+        final Duration duration = new Duration(milliSeconds); // in milliseconds
+        final PeriodFormatter formatter = new PeriodFormatterBuilder()//
+                .appendMinutes()//
+                .appendSuffix("m ") //
+                .appendSeconds()//
+                .appendSuffix("s ")//
+                .appendMillis()//
+                .appendSuffix("ms")//
+                .toFormatter();
+        return formatter.print(duration.toPeriod());
+    }
 
 }

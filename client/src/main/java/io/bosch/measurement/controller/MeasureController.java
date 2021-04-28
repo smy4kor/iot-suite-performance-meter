@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,24 +27,27 @@ public class MeasureController {
     @RequestMapping(value = "using-events/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Request measureUsingEvents(@PathVariable(name = "count", required = true) final int count,
+            @RequestParam(value = "delay", required = false) final int delay,
             @RequestBody(required = false) final Map desiredResponseHeaders) {
-        final Request request = new Request(generateId(), count, enrich(desiredResponseHeaders));
+        final Request request = new Request(generateId(), count, delay, enrich(desiredResponseHeaders));
         service.measureUsingEvents(request);
         return request;
     }
 
     @RequestMapping(value = "using-feature/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
-    public Request measureUsingFeature(@PathVariable(name = "count", required = true) final int count) {
-        final Request request = new Request(generateId(), count, null);
+    public Request measureUsingFeature(@PathVariable(name = "count", required = true) final int count,
+            @RequestParam(value = "delay", required = false) final int delay) {
+        final Request request = new Request(generateId(), count, delay, null);
         service.measureUsingFeature(request);
         return request;
     }
 
     @RequestMapping(value = "using-rest/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
-    public Request measureUsingRest(@PathVariable(name = "count", required = true) final int count) {
-        final Request request = new Request(generateId(), count, null);
+    public Request measureUsingRest(@PathVariable(name = "count", required = true) final int count,
+            @RequestParam(value = "delay", required = false) final int delay) {
+        final Request request = new Request(generateId(), count, delay, null);
         service.measureUsingRest(request);
         return request;
     }
