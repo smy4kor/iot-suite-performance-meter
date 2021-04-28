@@ -40,6 +40,7 @@ public class Counter {
         private boolean inOrder;
         // private List<Integer> messages;
         private String timeTaken;
+        private int duplicatesReceived;
 
         /**
          * This will subtract the delay added to the response.
@@ -83,6 +84,7 @@ public class Counter {
                 .received(received.size())//
                 .completed(completed)//
                 .inOrder(isInOrder)//
+                .duplicatesReceived(duplicateReceivedCount)
                 // .messages(indexReceived)//
                 .timeTaken(prettify(elapsedTimeWithDelay))//
                 .build();
