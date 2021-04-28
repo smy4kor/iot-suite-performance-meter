@@ -35,3 +35,4 @@ build/
 
 ### python ###
 /venv/
+/edge-agent/target/
