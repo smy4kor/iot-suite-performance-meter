@@ -1,10 +1,8 @@
 package io.bosch.measurement.ditto;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.bosch.measurement.performance.Request;
 import org.eclipse.ditto.client.DittoClient;
 import org.eclipse.ditto.client.changes.Change;
 import org.eclipse.ditto.client.live.messages.RepliableMessage;
@@ -22,10 +20,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.bosch.measurement.performance.Request;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class DittoThingClient {
     private static final Logger LOG = LoggerFactory.getLogger(DittoThingClient.class.getName());
@@ -57,7 +55,7 @@ public class DittoThingClient {
                 handler);
     }
 
-    public void deregisterForMeterEvents() {
+    public void deregisterForMeterEvents(final String thingId) {
         liveClient.live().forId(ThingId.of(thingId)).deregister("performance-meter");
         liveClient.live().forId(ThingId.of(thingId)).deregister("log-handler");
     }

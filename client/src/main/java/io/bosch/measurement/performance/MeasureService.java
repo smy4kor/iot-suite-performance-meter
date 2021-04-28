@@ -1,10 +1,12 @@
 package io.bosch.measurement.performance;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
+import io.bosch.measurement.consumers.Counter.Status;
+import io.bosch.measurement.consumers.DittoFeatureEventConsumer;
+import io.bosch.measurement.consumers.DittoWsEventConsumer;
+import io.bosch.measurement.consumers.RestConsumer;
+import io.bosch.measurement.ditto.AuthenticationProperties;
+import io.bosch.measurement.ditto.DittoClientConfig;
+import io.bosch.measurement.ditto.DittoThingClient;
 import org.eclipse.ditto.client.DittoClient;
 import org.eclipse.ditto.json.JsonPointer;
 import org.slf4j.Logger;
@@ -15,13 +17,10 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import io.bosch.measurement.consumers.Counter.Status;
-import io.bosch.measurement.consumers.DittoFeatureEventConsumer;
-import io.bosch.measurement.consumers.DittoWsEventConsumer;
-import io.bosch.measurement.consumers.RestConsumer;
-import io.bosch.measurement.ditto.AuthenticationProperties;
-import io.bosch.measurement.ditto.DittoClientConfig;
-import io.bosch.measurement.ditto.DittoThingClient;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 @Service
 public class MeasureService {
@@ -61,7 +60,7 @@ public class MeasureService {
     }
 
     public String measureUsingEvents(final Request request) {
-        thingClient.deregisterForMeterEvents();
+        thingClient.deregisterForMeterEvents(authenticationProperties.getDeviceId());
         wsEventConsumer.reset(request);
         thingClient.registerForMeterEvents(wsEventConsumer);
         thingClient.sendStartMessage(FEATURE_ID, request);
