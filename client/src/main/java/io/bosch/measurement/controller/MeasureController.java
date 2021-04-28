@@ -1,5 +1,9 @@
 package io.bosch.measurement.controller;
 
+import static io.bosch.measurement.controller.ViewController.USING_EVENTS;
+import static io.bosch.measurement.controller.ViewController.USING_FEATURE;
+import static io.bosch.measurement.controller.ViewController.USING_REST;
+
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
@@ -14,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.bosch.measurement.performance.MeasureService;
 import io.bosch.measurement.performance.Request;
 import lombok.RequiredArgsConstructor;
-
 @RestController
 @RequestMapping("api/v1/measure")
 @RequiredArgsConstructor
@@ -22,7 +25,7 @@ public class MeasureController {
 
     private final MeasureService service;
 
-    @RequestMapping(value = "using-events/{count}", method = RequestMethod.GET)
+    @RequestMapping(value = USING_EVENTS + "/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Request measureUsingEvents(@PathVariable(name = "count", required = true) final int count,
             @RequestParam(value = "delay", required = false) final int delay,
@@ -33,7 +36,7 @@ public class MeasureController {
         return request;
     }
 
-    @RequestMapping(value = "using-feature/{count}", method = RequestMethod.GET)
+    @RequestMapping(value = USING_FEATURE + "/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Request measureUsingFeature(@PathVariable(name = "count", required = true) final int count,
             @RequestParam(value = "delay", required = false) final int delay) {
@@ -42,7 +45,7 @@ public class MeasureController {
         return request;
     }
 
-    @RequestMapping(value = "using-rest/{count}", method = RequestMethod.GET)
+    @RequestMapping(value = USING_REST + "/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Request measureUsingRest(@PathVariable(name = "count", required = true) final int count,
             @RequestParam(value = "delay", required = false) final int delay,

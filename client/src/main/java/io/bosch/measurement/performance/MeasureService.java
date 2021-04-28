@@ -1,12 +1,10 @@
 package io.bosch.measurement.performance;
 
-import io.bosch.measurement.consumers.Counter.Status;
-import io.bosch.measurement.consumers.DittoFeatureEventConsumer;
-import io.bosch.measurement.consumers.DittoWsEventConsumer;
-import io.bosch.measurement.consumers.RestConsumer;
-import io.bosch.measurement.ditto.AuthenticationProperties;
-import io.bosch.measurement.ditto.DittoClientConfig;
-import io.bosch.measurement.ditto.DittoThingClient;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
 import org.eclipse.ditto.client.DittoClient;
 import org.eclipse.ditto.json.JsonPointer;
 import org.slf4j.Logger;
@@ -17,10 +15,13 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import io.bosch.measurement.consumers.Counter.Status;
+import io.bosch.measurement.consumers.DittoFeatureEventConsumer;
+import io.bosch.measurement.consumers.DittoWsEventConsumer;
+import io.bosch.measurement.consumers.RestConsumer;
+import io.bosch.measurement.ditto.AuthenticationProperties;
+import io.bosch.measurement.ditto.DittoClientConfig;
+import io.bosch.measurement.ditto.DittoThingClient;
 
 @Service
 public class MeasureService {
@@ -39,7 +40,7 @@ public class MeasureService {
     private AuthenticationProperties authenticationProperties;
 
     @Autowired
-    RestConsumer restConsumer;
+    private RestConsumer restConsumer;
 
     // agent will respond to featureUpdate on this id..
     private static final String FEATURE_ID = "measure-performance-feature";
@@ -52,8 +53,6 @@ public class MeasureService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void onInit() throws InterruptedException, ExecutionException {
-        // featureEventConsumer = new DittoFeatureEventConsumer();
-        // wsEventConsumer = new DittoWsEventConsumer();
         thingClient = new DittoThingClient(twinClient, liveClient, authenticationProperties.getDeviceId());
         thingClient.createFeatureIfNotPresent(FEATURE_ID);
         thingClient.registerForFeatureChange(FEATURE_ID, featureEventConsumer);
@@ -84,11 +83,5 @@ public class MeasureService {
         res.put("rest-based", restConsumer.getStatus());
         return res;
     }
-
-    /*
-     * public Flux<List> getStatusStream() { return
-     * Flux.interval(Duration.ofSeconds(1)).onBackpressureDrop().map(x -> {
-     * return Arrays.asList(UUID.randomUUID(), UUID.randomUUID()); }); }
-     */
 
 }
