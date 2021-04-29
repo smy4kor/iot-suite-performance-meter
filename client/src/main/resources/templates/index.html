@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link data-th-href="@{/css/bootstrap.min.css}" rel="stylesheet">
-<link data-th-href="@{/css/main.css}" rel="stylesheet">
-</head>
+	<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link data-th-href="@{/css/bootstrap.min.css}" rel="stylesheet">
+	<link data-th-href="@{/css/main.css}" rel="stylesheet">
+	</head>
 <body>
-
 	<div class="container">
-
 		<div class="row">
 			<div class="col-sm-12">
 				<div id="title">
@@ -29,15 +27,18 @@
 					<tbody>
 						<tr class="result" th:each="entry : ${allstatus}">
 							<td th:text="${entry.key}">keyvalue</td>
-							<td th:if="${entry?.value}"
-								th:class="'text '+${entry?.value?.completed ? 'text-success' : 'text-danger'}">
-								<span th:text="${entry?.value?.received}"></span> out of <span
-								th:text="${entry?.value?.expected}"></span> <br> 
+							<td th:if="${entry?.value}">
+							   <div class="d-flex flex-column align-items-start">
+							   	<div th:class="'text '+${entry?.value?.completed ? 'text-success' : 'text-danger'}">
+									<span th:text="${entry?.value?.received} + ' out of ' + ${entry?.value?.expected}"></span>
+								</div>
 								
-								<span class="badge badge-danger" th:unless="${entry?.value?.inOrder}">Not
+								
+								<span class="badge badge-danger mt-2" th:unless="${entry?.value?.inOrder}">Not
 									in order</span>
-									
-								<span class="badge badge-warning" th:if="${entry?.value?.duplicatesReceived > 0}">Received duplicates</span>
+								<span class="badge badge-warning mt-2" th:if="${entry?.value?.duplicatesReceived > 0}" 
+								th:text="'Received ' + ${entry?.value?.duplicatesReceived} + ' duplicates'">Received duplicates</span>
+							   </div>
 							</td>
 							<td th:unless="${entry?.value}">No Data</td>
 
@@ -55,7 +56,7 @@
 				<form th:action="@{/trigger}" th:object="${triggerRequest}"
 					method="post">
 					<div class="form-group">
-					    <label >Example select</label>
+					    <label>Measurement Type</label>
 					    <select class="form-control" th:field="*{type}">
 						  <option 
 						      th:each="dropdownValue: ${typeOptions}"
@@ -87,5 +88,6 @@
 				</form>
 			</div>
 		</div>
-
 	</div>
+</body>
+</html>
