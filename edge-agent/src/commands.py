@@ -8,7 +8,7 @@ class MeasurementData:
         self.expected = expected
         self.current = currentIndex
 
-    def toJson(self):
+    def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
@@ -22,7 +22,7 @@ class DittoResponse:
         if response_code:
             self.status = response_code
 
-    def prepare_aknowledgement(self, ditto_correlation_id):
+    def prepare_acknowledgement(self, ditto_correlation_id):
         self.value = {}
         self.headers = {
             "response-required": False,
@@ -53,7 +53,7 @@ class DittoCommand:
         self.requestHeaders = payload['headers']
         
         val = payload['value']
-        # in case of events, the value is delivered as string. In case of feature update, the value is delivered as dict.
+        # For events, the value is delivered as string. In case of feature update, the value is delivered as dict.
         if type(val) is dict:
             self.value = json.loads(json.dumps(val))
         else:
@@ -103,9 +103,8 @@ class DittoCommand:
         status = 200
         akn_path = self.path.replace("inbox", "outbox")
         rsp = DittoResponse(self.dittoTopic, akn_path, status)
-        rsp.prepare_aknowledgement(self.dittoCorrelationId)
+        rsp.prepare_acknowledgement(self.dittoCorrelationId)
         return rsp
 
     def response_required(self) -> bool:
         return self.payload['headers']['response-required']
-    

@@ -1,12 +1,8 @@
-import os
-import os.path
 import json
-from json import JSONEncoder
-import uuid
 
 import paho
-import time
 import requests
+import time
 
 from commands import DittoCommand, DittoResponse, MeasurementData
 from device_info import DeviceInfo
@@ -84,9 +80,9 @@ class Feature:
         
         print("Sending {} events with a delay of {} seconds".format(count, delayInSec))
         if response_url:
-            self.respondUsingRest(command, count, delayInSec, request_id,response_url)
+            self.respond_using_rest(command, count, delayInSec, request_id, response_url)
         elif command.mqttTopic == "command///req//start":
-            self.respondUsingEvents(command, count, delayInSec, request_id)
+            self.respond_using_events(command, count, delayInSec, request_id)
         elif command.path.endswith("properties/status/request") and (command.mqttTopic == "command///req//modified" or command.mqttTopic == "command///req//created"):
             self.respondUsingFeature(command, count, delayInSec, request_id)
 
@@ -108,18 +104,19 @@ class Feature:
                 print("Sending {}".format(json.dumps(event)))
             time.sleep(delayInSec)
             self.__mqttClient.publish('e', json.dumps(event), qos=1)
-                        
-    def respondUsingEvents(self, command: DittoCommand, count, delayInSec, request_id):
+
+    def respond_using_events(self, command: DittoCommand, count, delayInSec, request_id):
         print("Responding using events")
         resp_headers = command.value.get('responseHeaders', {
-                    "response-required": False,
-                    "content-type": "application/json",
-                    "correlation-id": "dont-care",
-                })
-        
+            "response-required": False,
+            "content-type": "application/json",
+            "correlation-id": "dont-care",
+        })
+
         resp_subject = 'meter.event.response';
         resp_path = "/features/{}/outbox/messages/{}".format(command.featureId, resp_subject)
-        print("Expected response message count = {}, headers={}, request id = {} ".format(count, resp_headers, request_id))
+        print("Expected response message count = {}, headers={}, request id = {} ".format(count, resp_headers,
+                                                                                          request_id))
 
         for i in range(count):
             event = {
@@ -133,10 +130,13 @@ class Feature:
                 print("Sending {}".format(json.dumps(event)))
             time.sleep(delayInSec)
             self.__mqttClient.publish('t', json.dumps(event), qos=1)
-            
-    def respondUsingRest(self, command: DittoCommand, count, delayInSec, request_id, response_url):
+
+    @staticmethod
+    def respond_using_rest(command: DittoCommand, count, delay_in_sec, request_id, response_url):
         print("Responding over http url: " + response_url)
         for i in range(count):
-            postData = MeasurementData(request_id, count, i).__dict__
-            time.sleep(delayInSec)
-            requests.post(response_url, data = postData)
+            post_data = MeasurementData(request_id, count, i).__dict__
+            time.sleep(delay_in_sec)
+            requests.post(response_url, data=post_data.to_json(), headers={
+                'Content-type': 'application/json'
+            })
