@@ -143,12 +143,8 @@ class Feature:
     def respond_using_rest(command: DittoCommand, count, delay_in_sec, request_id, response_url):
         print("Responding over url= {}; delay= {}ms".format(response_url, delay_in_sec))
         for i in range(count):
-            # post_data = MeasurementData(request_id, count, i)
+            post_data = MeasurementData(request_id, count, i)
             time.sleep(delay_in_sec)
-            requests.post(response_url, data={
-                'id': request_id,
-                'expected': count,
-                'current': i
-            }, headers={
+            requests.post(response_url, data=post_data.to_json(), headers={
                 'Content-type': 'application/json'
             })
