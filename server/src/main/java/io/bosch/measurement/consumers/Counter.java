@@ -60,6 +60,7 @@ public class Counter {
         if (!received.add(data)) {
             duplicateReceivedCount++;
         } else {
+            LOG.trace("Responce received: {}", data);
             lastReceivedEventTime = System.currentTimeMillis();
             if (data.getCurrent() >= data.getExpected()) {
                 final String elapsedDuration = prettify(lastReceivedEventTime - startTime);
