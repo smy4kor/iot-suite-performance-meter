@@ -1,8 +1,13 @@
+import asyncio
 import json
-import os
+import logging
+import random
 
 import paho
+import requests
+import stomper
 import time
+from websocket._core import create_connection
 
 from commands import DittoCommand, DittoResponse, MeasurementData
 from device_info import DeviceInfo
@@ -79,11 +84,15 @@ class Feature:
         response_url = command.value.get('responseUrl')
         
         print("Sending {} events with a delay of {} seconds".format(count, delayInSec))
-        if response_url:
+        if response_url and response_url.startswith('ws://'):
+            asyncio.get_event_loop().run_until_complete(
+                self.respond_using_ws(command, count, delayInSec, request_id, response_url))
+        elif response_url:
             self.respond_using_rest(command, count, delayInSec, request_id, response_url)
         elif command.mqttTopic == "command///req//start":
             self.respond_using_events(command, count, delayInSec, request_id)
-        elif command.path.endswith("properties/status/request") and (command.mqttTopic == "command///req//modified" or command.mqttTopic == "command///req//created"):
+        elif command.path.endswith("properties/status/request") and (
+                command.mqttTopic == "command///req//modified" or command.mqttTopic == "command///req//created"):
             self.respondUsingFeature(command, count, delayInSec, request_id)
 
     def respondUsingFeature(self, command: DittoCommand, count, delayInSec, request_id):
@@ -144,9 +153,26 @@ class Feature:
         print("Responding over url= {}; delay= {}ms".format(response_url, delay_in_sec))
         for i in range(count):
             post_data = MeasurementData(request_id, count, i)
-            time.sleep(delay_in_sec)  #
-            os.system(
-                "curl -d '{}' --header 'Content-type:application/json' {}".format(post_data.to_json(), response_url))
-            # requests.post(response_url, data=post_data.to_json(), headers={
-            #     'Content-type': 'application/json'
-            # })
+            requests.post(response_url, data=post_data.to_json(), headers={
+                'Content-type': 'application/json'
+            })
+
+    @staticmethod
+    async def respond_using_ws(command: DittoCommand, count, delay_in_sec, request_id, response_url):
+        logging.info("Responding over url= %s; delay= %s ms", response_url, delay_in_sec)
+        ws = create_connection(response_url)
+
+        idx = str(random.randint(0, 1000))
+        sub = stomper.subscribe("/data", idx, ack='auto')
+        ws.send(sub)
+        for i in range(count):
+            post_data = MeasurementData(request_id, count, i)
+            time.sleep(delay_in_sec)
+            msg = stomper.send(dest="/app/data", msg=post_data.to_json(), content_type="application/json")
+            logging.debug("Going to send stomp message: %s", msg)
+            ws.send(msg)
+            # ws.send("some trash")
+            # await ws.send(post_data.to_json())
+            # await ws.recv()
+
+        ws.send(stomper.unsubscribe(idx))

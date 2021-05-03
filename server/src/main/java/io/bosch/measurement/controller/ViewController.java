@@ -1,14 +1,5 @@
 package io.bosch.measurement.controller;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-
 import io.bosch.measurement.performance.MeasureService;
 import io.bosch.measurement.performance.Request;
 import lombok.AllArgsConstructor;
@@ -16,6 +7,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor

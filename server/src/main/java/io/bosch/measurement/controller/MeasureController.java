@@ -1,11 +1,8 @@
 package io.bosch.measurement.controller;
 
-import static io.bosch.measurement.controller.ViewController.USING_EVENTS;
-import static io.bosch.measurement.controller.ViewController.USING_FEATURE;
-import static io.bosch.measurement.controller.ViewController.USING_REST;
-
-import java.util.Map;
-
+import io.bosch.measurement.performance.MeasureService;
+import io.bosch.measurement.performance.Request;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,9 +12,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.bosch.measurement.performance.MeasureService;
-import io.bosch.measurement.performance.Request;
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
+
+import static io.bosch.measurement.controller.ViewController.*;
+
 @RestController
 @RequestMapping("api/v1/measure")
 @RequiredArgsConstructor
@@ -48,8 +46,8 @@ public class MeasureController {
     @RequestMapping(value = USING_REST + "/{count}", method = RequestMethod.GET)
     @ResponseStatus(value = HttpStatus.ACCEPTED)
     public Request measureUsingRest(@PathVariable(name = "count", required = true) final int count,
-            @RequestParam(value = "delay", required = false) final int delay,
-            @RequestParam(value = "response-url", required = true) final String responseUrl) {
+                                    @RequestParam(value = "delay", required = false) final int delay,
+                                    @RequestParam(value = "response-url", required = true) final String responseUrl) {
         final Request request = Request.builder().id(RequestUtil.generateId()).count(count).delay(delay)
                 .responseUrl(responseUrl).build();
         service.measureUsingRest(request);

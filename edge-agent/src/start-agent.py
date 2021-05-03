@@ -1,9 +1,10 @@
+import argparse
+import json
+import logging
+import re
+
 import paho
 import paho.mqtt.client as mqtt
-import time
-import json
-import argparse
-import re
 
 from commands import DittoCommand
 # from commands import MeasurementData
@@ -87,10 +88,12 @@ def get_feature_id(payload):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-mh", "--mqtt_host", metavar='PORT', help="Host of the MQTT broker", default='localhost')
+    parser.add_argument("-mh", "--mqtt_host", metavar='HOST', help="Host of the MQTT broker", default='localhost')
     parser.add_argument("-mp", "--mqtt_port", metavar='PORT', help="Port of the MQTT broker", type=int, default=1883)
+    parser.add_argument("-ll", "--log_level", metavar="LOG_LEVEL", help="Log level", default='INFO')
     args = parser.parse_args()
 
+    logging.basicConfig(level=args.log_level)
     print("MQTT connecting to {}:{}".format(args.mqtt_host, args.mqtt_port))
     mqtt_client = mqtt.Client()
     mqtt_client.on_connect = on_connect
