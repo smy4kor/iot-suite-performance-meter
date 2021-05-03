@@ -1,7 +1,7 @@
 import json
+import os
 
 import paho
-import requests
 import time
 
 from commands import DittoCommand, DittoResponse, MeasurementData
@@ -144,7 +144,9 @@ class Feature:
         print("Responding over url= {}; delay= {}ms".format(response_url, delay_in_sec))
         for i in range(count):
             post_data = MeasurementData(request_id, count, i)
-            time.sleep(delay_in_sec)
-            requests.post(response_url, data=post_data.to_json(), headers={
-                'Content-type': 'application/json'
-            })
+            time.sleep(delay_in_sec)  #
+            os.system(
+                "curl -d '{}' --header 'Content-type:application/json' {}".format(post_data.to_json(), response_url))
+            # requests.post(response_url, data=post_data.to_json(), headers={
+            #     'Content-type': 'application/json'
+            # })

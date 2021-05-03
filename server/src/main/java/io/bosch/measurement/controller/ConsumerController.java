@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConsumerController {
 
     @Autowired
-    RestConsumer restConsumer;
+    private RestConsumer restConsumer;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public void receiveResponse(@RequestBody final Response response) {
