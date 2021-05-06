@@ -79,29 +79,30 @@ class Feature:
         self.acknowledge(command)
 
         count = command.value.get('count', 100)
-        delayInSec = command.value.get('delay', 0) / 1000
+        delay_in_sec = command.value.get('delay', 0) / 1000
         request_id = command.value.get('id')
         response_url = command.value.get('responseUrl')
-        
-        print("Sending {} events with a delay of {} seconds".format(count, delayInSec))
+
+        print("Sending {} events with a delay of {} seconds".format(count, delay_in_sec))
         if response_url and response_url.startswith('ws://'):
             asyncio.get_event_loop().run_until_complete(
-                self.respond_using_ws(command, count, delayInSec, request_id, response_url))
+                self.respond_using_ws(command, count, delay_in_sec, request_id, response_url))
         elif response_url:
-            self.respond_using_rest(command, count, delayInSec, request_id, response_url)
-        elif command.mqttTopic == "command///req//start":
-            self.respond_using_events(command, count, delayInSec, request_id)
+            self.respond_using_rest(command, count, delay_in_sec, request_id, response_url)
+        elif command.dittoTopic.endswith("live/messages/start"):
+            self.respond_using_events(command, count, delay_in_sec, request_id)
         elif command.path.endswith("properties/status/request") and (
                 command.mqttTopic == "command///req//modified" or command.mqttTopic == "command///req//created"):
-            self.respondUsingFeature(command, count, delayInSec, request_id)
+            self.respond_using_feature(command, count, delay_in_sec, request_id)
 
-    def respondUsingFeature(self, command: DittoCommand, count, delayInSec, request_id):
+    def respond_using_feature(self, command: DittoCommand, count, delay_in_sec, request_id):
         print("Responding using feature update")
-        dittoRspTopic = "{}/{}/things/twin/commands/modify".format(self.__deviceInfo.namespace, self.__deviceInfo.deviceId)
+        ditto_rsp_topic = "{}/{}/things/twin/commands/modify".format(self.__deviceInfo.namespace,
+                                                                     self.__deviceInfo.deviceId)
         for i in range(count):
             event = {
                 # 'topic': command.dittoTopic,
-                'topic': dittoRspTopic,
+                'topic': ditto_rsp_topic,
                 'path': "/features/{}/properties/status/response".format(command.featureId),
                 'headers': {
                     "response-required": False,
@@ -111,7 +112,7 @@ class Feature:
             }
             if i == count - 1:
                 print("Sending {}".format(json.dumps(event)))
-            time.sleep(delayInSec)
+            time.sleep(delay_in_sec)
             self.__mqttClient.publish('e', json.dumps(event), qos=1)
 
     def respond_using_events(self, command: DittoCommand, count, delay_in_sec, request_id):
@@ -124,8 +125,8 @@ class Feature:
 
         resp_subject = 'meter.event.response';
         resp_path = "/features/{}/outbox/messages/{}".format(command.featureId, resp_subject)
-        print("Expected response message count = {}, headers={}, request id = {} ".format(count, resp_headers,
-                                                                                          request_id))
+        print("Expected response message count = {}, headers={}, request id = {} "
+              .format(count, resp_headers, request_id))
 
         for i in range(count):
             event = {

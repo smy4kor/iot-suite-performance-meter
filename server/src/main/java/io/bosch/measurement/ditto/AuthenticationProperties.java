@@ -4,10 +4,10 @@
 
 package io.bosch.measurement.ditto;
 
+import lombok.Data;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-
-import lombok.Data;
 
 /**
  * Things client specific configuration properties
@@ -23,4 +23,9 @@ public class AuthenticationProperties {
     private String clientSecret;
     private String serviceInstanceId;
     private String deviceId;
+    private boolean acknowledgeMessages = false;
+
+    public AcknowledgementLabel getThingsAcknLabel() {
+        return AcknowledgementLabel.of(getServiceInstanceId() + "_things:performancemeter");
+    }
 }

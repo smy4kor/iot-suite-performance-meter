@@ -6,17 +6,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.joda.time.Duration;
-import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class Counter {
     private final String id;
     private final int expectedCount;
@@ -25,8 +23,6 @@ public class Counter {
     private final Set<Response> received;
     private final long startTime;
     private long lastReceivedEventTime;
-
-    private static final Logger LOG = LoggerFactory.getLogger(Counter.class);
 
     @Data
     @NoArgsConstructor
@@ -60,11 +56,11 @@ public class Counter {
         if (!received.add(data)) {
             duplicateReceivedCount++;
         } else {
-            LOG.trace("Responce received: {}", data);
+            log.trace("Responce received: {}", data);
             lastReceivedEventTime = System.currentTimeMillis();
             if (data.getCurrent() >= data.getExpected()) {
                 final String elapsedDuration = prettify(lastReceivedEventTime - startTime);
-                LOG.info("Received {} events in {}. Request id {}", expectedCount, elapsedDuration, id);
+                log.info("Received {} events in {}. Request id {}", expectedCount, elapsedDuration, id);
             }
         }
     }
@@ -73,15 +69,15 @@ public class Counter {
         if (received.isEmpty()) {
             return null;
         }
-        final long elapsedTimeWithDelay = lastReceivedEventTime - startTime;
-        final boolean completed = expectedCount == received.size();
+        final var elapsedTimeWithDelay = lastReceivedEventTime - startTime;
+        final var completed = expectedCount == received.size();
 
-        final List<Integer> indexReceived = received.stream().map(x -> x.getCurrent()).collect(Collectors.toList());
-        final boolean isInOrder = Ordering.natural().isOrdered(indexReceived);
-        final long averageTimePerMsg = (elapsedTimeWithDelay - (received.size() * delay))
+        final var indexReceived = received.stream().map(Response::getCurrent).collect(Collectors.toList());
+        final var isInOrder = Ordering.natural().isOrdered(indexReceived);
+        final var averageTimePerMsg = (elapsedTimeWithDelay - ((long) received.size() * delay))
                 / received.size();
 
-        LOG.debug("id={}; elapsedTimeWithDelay= {}ms; averageTimePerMsg={}ms", id, elapsedTimeWithDelay, averageTimePerMsg);
+        log.debug("id={}; elapsedTimeWithDelay= {}ms; averageTimePerMsg={}ms", id, elapsedTimeWithDelay, averageTimePerMsg);
         return Status.builder()//
                 .id(id)//
                 .expected(expectedCount) //
@@ -96,16 +92,15 @@ public class Counter {
     }
 
     private String prettify(final long milliSeconds) {
-        final Duration duration = new Duration(milliSeconds); // in milliseconds
-        final PeriodFormatter formatter = new PeriodFormatterBuilder()//
+        return new PeriodFormatterBuilder()//
                 .appendMinutes()//
                 .appendSuffix("m ") //
                 .appendSeconds()//
                 .appendSuffix("s ")//
                 .appendMillis()//
                 .appendSuffix("ms")//
-                .toFormatter();
-        return formatter.print(duration.toPeriod());
+                .toFormatter()
+                .print(Duration.millis(milliSeconds).toPeriod());
     }
 
 }

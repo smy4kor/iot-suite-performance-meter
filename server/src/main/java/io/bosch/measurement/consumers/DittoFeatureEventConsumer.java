@@ -1,19 +1,27 @@
 package io.bosch.measurement.consumers;
 
-import java.io.IOException;
-import java.util.function.Consumer;
-
+import io.bosch.measurement.performance.MeasureService;
+import io.bosch.measurement.performance.Response;
+import lombok.RequiredArgsConstructor;
 import org.eclipse.ditto.client.changes.Change;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.bosch.measurement.performance.MeasureService;
-import io.bosch.measurement.performance.Response;
+import java.io.IOException;
+import java.util.function.Consumer;
 
+@RequiredArgsConstructor
 public class DittoFeatureEventConsumer extends ConsumerBase implements Consumer<Change> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DittoFeatureEventConsumer.class);
+    private final AcknowledgementLabel acknowledgementLabel;
+
+    public DittoFeatureEventConsumer() {
+        acknowledgementLabel = null;
+    }
 
     @Override
     public void accept(final Change change) {
@@ -25,6 +33,10 @@ public class DittoFeatureEventConsumer extends ConsumerBase implements Consumer<
                 process(value);
             }
         });
+        if (acknowledgementLabel != null) {
+            LOG.trace("Sending acknowlege: {}", acknowledgementLabel);
+            change.handleAcknowledgementRequest(acknowledgementLabel, handle -> handle.acknowledge(HttpStatusCode.OK));
+        }
     }
 
     public void process(final JsonValue value) {
@@ -39,7 +51,6 @@ public class DittoFeatureEventConsumer extends ConsumerBase implements Consumer<
             LOG.error("Exception while parsing {}, {}", value, e);
         }
     }
-
 
 
 }
