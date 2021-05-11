@@ -34,7 +34,7 @@ public class DittoFeatureEventConsumer extends ConsumerBase implements Consumer<
             }
         });
         if (acknowledgementLabel != null) {
-            LOG.trace("Sending acknowlege: {}", acknowledgementLabel);
+            LOG.trace("Sending acknowledge: {}", acknowledgementLabel);
             change.handleAcknowledgementRequest(acknowledgementLabel, handle -> handle.acknowledge(HttpStatusCode.OK));
         }
     }
